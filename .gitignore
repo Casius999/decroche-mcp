@@ -1,0 +1,54 @@
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+
+# --- Secrets / env (NEVER commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.*
+
+# --- Logs / temp ---
+*.log
+tmp/
+.cache/
+
+# --- Coverage / test artifacts ---
+coverage/
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mutmut-cache
+.hypothesis/
+
+# --- Build / dist ---
+dist/
+build/
+*.egg-info/
+out/
+target/
+
+# --- Dependencies (lockfiles ARE committed; trees are not) ---
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# --- Tooling caches ---
+.ruff_cache/
+.mypy_cache/
+.tox/
+.gradle/
+
+# --- Local-only SBOM / scan outputs ---
+sbom.*.json
+results.sarif

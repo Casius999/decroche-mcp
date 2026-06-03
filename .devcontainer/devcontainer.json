@@ -1,0 +1,25 @@
+{
+  "name": "decroche-mcp",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/jdx/devcontainer-features/mise:1": {}
+  },
+  "postCreateCommand": "mise install && mise run setup",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "editorconfig.editorconfig",
+        "charliermarsh.ruff",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "files.insertFinalNewline": true
+      }
+    }
+  },
+  "remoteUser": "vscode"
+}

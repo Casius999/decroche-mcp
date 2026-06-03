@@ -1,0 +1,106 @@
+# SOTA CI — SHA-pinned actions · least-privilege · coverage gate >=80%
+# Python/uv adaptation: ruff + pytest --cov-fail-under=80, single python-version 3.12.
+# All third-party actions pinned by full commit SHA (verified June 2026); the trailing # vX.Y.Z
+# comment is kept fresh by Dependabot/Renovate (github-actions ecosystem).
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  merge_group: # required for merge queue
+
+# Deny-all by default; widen per job.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: astral-sh/setup-uv@6b9c6063abd6010835644d4c2e1bef4cf5cd0fca # v6.0.1
+        with:
+          enable-cache: true
+      - run: uv sync --extra dev
+      - name: Ruff lint
+        run: uv run ruff check --output-format=github .
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+  test:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: astral-sh/setup-uv@6b9c6063abd6010835644d4c2e1bef4cf5cd0fca # v6.0.1
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync --extra dev
+      - name: Test with coverage gate (>=80%)
+        run: uv run pytest --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: error
+
+  gitleaks:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0 # full history for secret scanning
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+
+  dependency-review:
+    # Only meaningful on PRs; compares base..head for vulnerable/badly-licensed deps.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/dependency-review-action@31c9f175b9cbbdee66d6ab34ed35e2c827f8be10 # v4.7.4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+
+  # Single required status check the ruleset gates on (set as required in ruleset.json).
+  all-green:
+    if: always()
+    needs: [lint, test, gitleaks, dependency-review]
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      - name: Fail if any needed job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
+      - run: echo "All required checks passed."

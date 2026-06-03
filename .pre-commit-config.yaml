@@ -1,0 +1,38 @@
+# pre-commit — cross-language git hooks. Install: `pre-commit install --install-hooks`
+# and `pre-commit install --hook-type commit-msg`. Update pins: `pre-commit autoupdate`.
+# Revs verified June 2026.
+minimum_pre_commit_version: "3.5.0"
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: detect-private-key
+
+  # Python: ruff (lint + format) — replaces black/isort/flake8/pyupgrade.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.15
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  # Secret scanning at commit time (defense-in-depth with CI + push protection).
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # Conventional Commits enforcement on the commit message.
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]

@@ -1,0 +1,25 @@
+# mise — pins tool versions + env + tasks (the 2026 asdf successor).
+# Usage: `mise install` (installs pinned tools), `mise run ci`. Add a lockfile with
+# `mise install` + `mise settings set lockfile true` for reproducible installs (mise.lock).
+[tools]
+python = "3.12"
+uv = "latest"
+
+[env]
+PYTHONDONTWRITEBYTECODE = "1"
+
+[tasks.setup]
+description = "Install project dependencies"
+run = "uv sync --frozen --all-extras --dev"
+
+[tasks.lint]
+description = "Lint + format check"
+run = ["uv run ruff check .", "uv run ruff format --check ."]
+
+[tasks.test]
+description = "Run tests with coverage gate"
+run = "uv run pytest --cov --cov-fail-under=80"
+
+[tasks.ci]
+description = "Full local CI gate"
+depends = ["lint", "test"]
