@@ -1,0 +1,41 @@
+[project]
+name = "decroche-mcp"
+version = "0.1.0"
+description = "decroche-mcp — 360 job-landing MCP (Phase 1: CV anti-rejection core)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "Julien Compain", email = "julien@novaquantix.tech" }
+]
+dependencies = [
+  "fastmcp>=3.4",
+  "pdfplumber>=0.11",
+  "python-docx>=1.2",
+  "pyyaml>=6.0",
+  "jsonschema>=4.23",
+]
+
+[project.scripts]
+decroche-mcp = "decroche.server:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "pytest-cov>=5", "ruff>=0.6", "reportlab>=4.2"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/decroche"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src/decroche"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
