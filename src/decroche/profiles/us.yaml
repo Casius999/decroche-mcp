@@ -1,0 +1,11 @@
+id: us
+photo: forbidden
+personal_info_ok: false
+hobbies_common: false
+cover_letter_expected: false
+length_ideal_pages: 1
+length_max_pages: 2
+paper: Letter
+date_format: Mon YYYY
+spelling: en-US
+anonymized_variant: false

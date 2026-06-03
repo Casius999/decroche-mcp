@@ -1,0 +1,98 @@
+from __future__ import annotations
+
+from pydantic import BaseModel, Field
+
+
+class Location(BaseModel):
+    address: str | None = None
+    postalCode: str | None = None
+    city: str | None = None
+    countryCode: str | None = None
+    region: str | None = None
+
+
+class Profile(BaseModel):
+    network: str | None = None
+    username: str | None = None
+    url: str | None = None
+
+
+class Basics(BaseModel):
+    name: str | None = None
+    label: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    url: str | None = None
+    summary: str | None = None
+    location: Location | None = None
+    profiles: list[Profile] = Field(default_factory=list)
+
+
+class Work(BaseModel):
+    name: str | None = None
+    position: str | None = None
+    startDate: str | None = None
+    endDate: str | None = None
+    summary: str | None = None
+    highlights: list[str] = Field(default_factory=list)
+
+
+class Education(BaseModel):
+    institution: str | None = None
+    area: str | None = None
+    studyType: str | None = None
+    startDate: str | None = None
+    endDate: str | None = None
+
+
+class Skill(BaseModel):
+    name: str | None = None
+    level: str | None = None
+    keywords: list[str] = Field(default_factory=list)
+
+
+class Language(BaseModel):
+    language: str | None = None
+    fluency: str | None = None
+
+
+class Meta(BaseModel):
+    market: str = "fr"
+    anonymized: bool = False
+
+
+class JSONResume(BaseModel):
+    basics: Basics = Field(default_factory=Basics)
+    work: list[Work] = Field(default_factory=list)
+    education: list[Education] = Field(default_factory=list)
+    skills: list[Skill] = Field(default_factory=list)
+    languages: list[Language] = Field(default_factory=list)
+    meta: Meta = Field(default_factory=Meta)
+
+
+class Section(BaseModel):
+    name: str          # canonical key, e.g. "experience"
+    raw_heading: str   # heading as found in the document
+    text: str
+
+
+class CVParse(BaseModel):
+    json_resume: JSONResume
+    raw_text: str
+    sections: list[Section] = Field(default_factory=list)
+    parse_confidence: float
+    warnings: list[str] = Field(default_factory=list)
+
+
+class MarketProfile(BaseModel):
+    id: str
+    photo: str                # "forbidden" | "optional" | "discouraged"
+    personal_info_ok: bool    # DOB / nationality acceptable on CV
+    hobbies_common: bool
+    cover_letter_expected: bool
+    length_ideal_pages: int
+    length_max_pages: int
+    paper: str                # "A4" | "Letter"
+    date_format: str          # "MM/YYYY" | "Mon YYYY"
+    spelling: str             # "fr" | "en-US" | "en-GB" | "en-CA"
+    anonymized_variant: bool

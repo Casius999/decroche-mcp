@@ -1,0 +1,11 @@
+id: fr
+photo: optional
+personal_info_ok: false
+hobbies_common: true
+cover_letter_expected: true
+length_ideal_pages: 1
+length_max_pages: 2
+paper: A4
+date_format: MM/YYYY
+spelling: fr
+anonymized_variant: true
