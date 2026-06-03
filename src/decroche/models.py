@@ -96,3 +96,44 @@ class MarketProfile(BaseModel):
     date_format: str          # "MM/YYYY" | "Mon YYYY"
     spelling: str             # "fr" | "en-US" | "en-GB" | "en-CA"
     anonymized_variant: bool
+
+
+# ── ATS / double-reader models (Tranche 2) ─────────────────────────────────────
+
+class Breakage(BaseModel):
+    type: str       # e.g. "two_column", "table", "header_contact", "scanned", "oversized"
+    location: str   # human-readable location in the document
+    severity: str   # "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
+    fix: str        # concrete remediation instruction
+
+
+class AtsParseResult(BaseModel):
+    ats_id: str
+    fmt: str                            # "pdf" | "docx" | "unknown"
+    parsability_score: float            # 0-100
+    fields_extracted: dict[str, bool]   # field_name → successfully extracted
+    fields_lost: list[str]              # fields the ATS will not receive
+    breakages: list[Breakage]
+
+
+class RedFlag(BaseModel):
+    flag_id: str    # matches redflags.yaml id
+    severity: str   # "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
+    location: str   # e.g. "work[0].highlights[2]"
+    evidence: str   # short excerpt or reason
+    fix: str        # concrete fix instruction
+
+
+class ScreenerKit(BaseModel):
+    machine_view_text: str      # flattened plain-text as the machine reads it
+    rubric: list[str]           # fixed scoring criteria strings
+    requirements: list[str]     # extracted from offer_text
+    ats_id: str
+
+
+class ScoreReport(BaseModel):
+    parsability: float          # 0-100
+    match: float | None         # 0-100 if provided
+    screener_readiness: str     # "low" | "medium" | "high"
+    redflag_count: int
+    delta: dict | None          # {parsability_before, parsability_after, breakage_delta} if after given

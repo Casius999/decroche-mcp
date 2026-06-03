@@ -1,0 +1,127 @@
+# Red-flag taxonomy for ats.redflag_scan
+# Source: spec §11.3 (table §B)
+# Each flag: id, severity, description_fr, description_en
+
+flags:
+  - id: typo_risk
+    severity: CRITICAL
+    description_fr: >
+      Risque de faute de frappe ou d'orthographe détecté dans le texte du CV.
+      Une faute visible dans les 6 premières secondes peut entraîner un rejet immédiat.
+    description_en: >
+      Likely typo or spelling error detected in CV text.
+      A visible error in the first 6 seconds can trigger immediate rejection.
+
+  - id: passive_voice
+    severity: HIGH
+    description_fr: >
+      Bullet rédigé à la voix passive (was/were/été + participe).
+      La voix active + verbe fort augmente l'impact perçu.
+    description_en: >
+      Bullet written in passive voice (was/were + past participle).
+      Active voice with a strong verb increases perceived impact.
+
+  - id: duty_bullets
+    severity: HIGH
+    description_fr: >
+      Bullet décrivant uniquement une responsabilité sans verbe fort ni chiffre.
+      Format XYZ recommandé : verbe d'action + résultat mesurable + méthode.
+    description_en: >
+      Bullet describes only a duty with no strong action verb and no metric.
+      XYZ format recommended: action verb + measurable result + method.
+
+  - id: gap_unlabeled
+    severity: MEDIUM
+    description_fr: >
+      Lacune d'emploi de plus de 3 mois détectée sans explication.
+      Ajouter une ligne (formation, freelance, projet, congé parental, etc.).
+    description_en: >
+      Employment gap longer than 3 months detected without explanation.
+      Add a line (training, freelance, project, parental leave, etc.).
+
+  - id: job_hopping
+    severity: MEDIUM
+    description_fr: >
+      Au moins 3 postes de moins de 12 mois détectés.
+      Risque de signal de stabilité pour les recruteurs sans contexte fourni.
+    description_en: >
+      At least 3 stints shorter than 12 months detected.
+      May signal instability to recruiters without added context.
+
+  - id: length_violation
+    severity: HIGH
+    description_fr: >
+      Longueur du CV hors des limites recommandées pour ce marché.
+      Vérifier le nombre de pages cible selon le profil de marché actif.
+    description_en: >
+      CV length outside the recommended range for this market.
+      Check the target page count for the active market profile.
+
+  - id: banned_word
+    severity: MEDIUM
+    description_fr: >
+      Mot ou expression générique détecté (ex. : « dynamique », « motivé »,
+      « esprit d'équipe »). Remplacer par un exemple concret et chiffré.
+    description_en: >
+      Generic buzzword detected (e.g. "motivated", "team player", "dynamic").
+      Replace with a concrete, quantified example.
+
+  - id: ai_generic_phrasing
+    severity: HIGH
+    description_fr: >
+      Formulation générique typique de texte généré par IA détectée
+      (ex. : « responsible for », « worked on », « helped with »).
+      Les screeners IA 2026 signalent ces patterns ; reformuler avec impact.
+    description_en: >
+      Generic phrasing typical of AI-generated text detected
+      (e.g. "responsible for", "worked on", "helped with", "in order to").
+      2026 AI screeners flag these patterns; rewrite with concrete impact.
+
+  - id: no_quantification
+    severity: MEDIUM
+    description_fr: >
+      Section « points forts » sans aucun chiffre ni métrique.
+      Ajouter au moins un indicateur mesurable (%, €, délai, volume, rang).
+    description_en: >
+      Highlights section contains no numbers or metrics.
+      Add at least one measurable indicator (%, €, time, volume, rank).
+
+  - id: wrong_photo_market
+    severity: CRITICAL
+    description_fr: >
+      Photo présente alors que le marché cible l'interdit (US, UK, CA).
+      Retirer la photo pour ce marché.
+    description_en: >
+      Photo present when the target market forbids it (US, UK, CA).
+      Remove the photo for this market.
+
+  - id: wrong_personal_info
+    severity: CRITICAL
+    description_fr: >
+      Informations personnelles sensibles présentes (date de naissance,
+      nationalité) alors que le marché cible les interdit (US, UK, CA).
+      Retirer ces informations.
+    description_en: >
+      Sensitive personal information present (date of birth, nationality)
+      when the target market forbids it (US, UK, CA).
+      Remove this information.
+
+  - id: years_only_dates
+    severity: MEDIUM
+    description_fr: >
+      Dates au format « AAAA » uniquement détectées. La plupart des ATS
+      échouent à parser les années seules ; utiliser « MM/AAAA » ou « Mois AAAA ».
+    description_en: >
+      Year-only date format detected. Most ATS fail to parse bare years;
+      use "MM/YYYY" or "Mon YYYY" instead.
+
+  - id: email_unprofessional
+    severity: LOW
+    description_fr: >
+      Adresse e-mail dont la partie locale ne ressemble pas à un nom propre
+      ou provient d'un domaine jetable.
+      Utiliser prénom.nom@domaine-pro.com.
+    description_en: >
+      Email address whose local part does not resemble a real name,
+      or uses a known throwaway domain.
+      Use firstname.lastname@professional-domain.com.

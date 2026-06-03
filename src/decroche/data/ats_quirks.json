@@ -1,0 +1,186 @@
+{
+  "workday": {
+    "preferred_format": "docx",
+    "max_file_mb": 2,
+    "column_behavior": "concatenate_lr",
+    "table_behavior": "merge",
+    "header_footer": "stripped",
+    "date_formats_fail": ["YYYY", "'YY", "season", "ongoing", "current"],
+    "section_headings_canonical": ["Experience", "Education", "Skills", "Summary", "Certifications", "Languages"],
+    "abbreviation_handling": "strict",
+    "ai_layer": "Illuminate + HiredScore",
+    "parse_fidelity": {"single_col": 0.95, "two_col": 0.55},
+    "quirks": [
+      "JS is not treated as equivalent to JavaScript",
+      "PDF from Canva (vectoriel) fails parsing",
+      "One entry per promotion required (no stacking)",
+      "Contact data in header is stripped entirely",
+      "Two-column layouts are concatenated left-to-right producing scrambled order"
+    ]
+  },
+  "greenhouse": {
+    "preferred_format": "pdf_text",
+    "max_file_mb": 2.5,
+    "column_behavior": "moderate",
+    "table_behavior": "risky",
+    "header_footer": "partial",
+    "date_formats_fail": ["season"],
+    "section_headings_canonical": ["Experience", "Education", "Skills", "Summary", "Certifications", "Languages"],
+    "abbreviation_handling": "tolerant",
+    "ai_layer": "Greenhouse AI (sept 2025)",
+    "parse_fidelity": {"single_col": 0.92, "two_col": 0.75},
+    "quirks": [
+      "Abbreviated section titles fail to parse correctly",
+      "Dummy/fake data triggers a skip of the entire entry",
+      "Recruiter sees the raw PDF first before structured data"
+    ]
+  },
+  "lever": {
+    "preferred_format": "docx",
+    "max_file_mb": 10,
+    "column_behavior": "omit_secondary",
+    "table_behavior": "scramble",
+    "header_footer": "risky",
+    "date_formats_fail": ["inconsistency"],
+    "section_headings_canonical": ["Experience", "Education", "Skills", "Summary", "Certifications", "Languages"],
+    "abbreviation_handling": "tolerant",
+    "ai_layer": "Gem semantic",
+    "parse_fidelity": {"single_col": 0.96, "two_col": 0.71},
+    "quirks": [
+      "Second column is entirely omitted during parsing",
+      "Skills listed inside a table have 0.0 parse fidelity",
+      "B.S. is not treated as equivalent to Bachelor of Science",
+      "No candidate preview available to recruiter",
+      "DOCX preferred (0.96) over PDF 1-col (0.94)"
+    ]
+  },
+  "taleo_oracle": {
+    "preferred_format": "docx",
+    "max_file_mb": 5,
+    "column_behavior": "concatenate_lr",
+    "table_behavior": "scramble",
+    "header_footer": "ignored",
+    "date_formats_fail": ["ongoing", "current", "season", "present"],
+    "section_headings_canonical": ["Experience", "Education", "Skills", "Summary", "Certifications", "Languages"],
+    "abbreviation_handling": "tolerant",
+    "ai_layer": "none",
+    "parse_fidelity": {"single_col": 0.88, "two_col": 0.40},
+    "quirks": [
+      "Legacy parser — worst table scrambling of all major ATS",
+      "OCR add-on required for scanned documents",
+      "Date values 'ongoing', 'current', and seasonal references cause parse failures",
+      "Tables are scrambled (worst-case among all ATS)"
+    ]
+  },
+  "icims": {
+    "preferred_format": "docx",
+    "max_file_mb": 5,
+    "column_behavior": "concatenate_lr",
+    "table_behavior": "tolerant",
+    "header_footer": "ignored",
+    "date_formats_fail": ["ongoing", "current", "fall", "spring", "summer", "winter"],
+    "section_headings_canonical": ["Experience", "Education", "Skills", "Summary", "Certifications", "Languages"],
+    "abbreviation_handling": "strict",
+    "ai_layer": "Copilot GPT-4 (exact match)",
+    "parse_fidelity": {"single_col": 0.89, "two_col": 0.67},
+    "quirks": [
+      "Ampersand (&) and slash (/) characters break field splitting",
+      "Unicode is poorly tokenized",
+      "Header/footer content is often ignored",
+      "Two-column fidelity drops to 0.67"
+    ]
+  },
+  "smartrecruiters": {
+    "preferred_format": "pdf_text",
+    "max_file_mb": 5,
+    "column_behavior": "moderate",
+    "table_behavior": "tolerant",
+    "header_footer": "readable",
+    "date_formats_fail": ["season"],
+    "section_headings_canonical": ["Experience", "Education", "Skills", "Summary", "Certifications", "Languages"],
+    "abbreviation_handling": "tolerant",
+    "ai_layer": "SmartRecruiters AI screening",
+    "parse_fidelity": {"single_col": 0.90, "two_col": 0.75},
+    "quirks": [
+      "Generally good multi-format tolerance",
+      "Structured data extraction is moderately reliable"
+    ]
+  },
+  "ashby": {
+    "preferred_format": "pdf_text",
+    "max_file_mb": 10,
+    "column_behavior": "best",
+    "table_behavior": "tolerant",
+    "header_footer": "readable",
+    "date_formats_fail": [],
+    "section_headings_canonical": ["Experience", "Education", "Skills", "Summary", "Certifications", "Languages"],
+    "abbreviation_handling": "tolerant",
+    "ai_layer": "AI Review (citations required)",
+    "parse_fidelity": {"single_col": 0.97, "two_col": 0.90},
+    "quirks": [
+      "Best multi-column tolerance of all major ATS",
+      "AI review layer requires verifiable citations — unsupported claims are flagged",
+      "Keyword stuffing is largely ineffective due to semantic AI layer",
+      "PII is masked before AI processing",
+      "PDF with selectable text strongly preferred"
+    ]
+  },
+  "bamboohr": {
+    "preferred_format": "pdf_text",
+    "max_file_mb": 5,
+    "column_behavior": "moderate",
+    "table_behavior": "tolerant",
+    "header_footer": "readable",
+    "date_formats_fail": [],
+    "section_headings_canonical": ["Experience", "Education", "Skills", "Summary", "Certifications", "Languages"],
+    "abbreviation_handling": "tolerant",
+    "ai_layer": "none",
+    "parse_fidelity": {"single_col": 0.70, "two_col": 0.50},
+    "quirks": [
+      "No native CV parsing engine — relies on manual review or third-party integration",
+      "Optimize for mobile card view (name, title, contact prominently placed)",
+      "File size up to 5 MB accepted"
+    ]
+  },
+  "recruitee": {
+    "preferred_format": "pdf_text",
+    "max_file_mb": 2,
+    "column_behavior": "scramble",
+    "table_behavior": "tolerant",
+    "header_footer": "ignored",
+    "date_formats_fail": ["inconsistency"],
+    "section_headings_canonical": ["Experience", "Education", "Skills", "Summary", "Certifications", "Languages"],
+    "abbreviation_handling": "tolerant",
+    "ai_layer": "Recruitee AI (tri)",
+    "parse_fidelity": {"single_col": 0.82, "two_col": 0.55},
+    "quirks": [
+      "Header content is ignored in DOCX files",
+      "Two-column layout causes 60% scramble rate",
+      "AI layer loses 30-50% of content in multi-column layouts",
+      "CEFR language level is a mandatory filtering field",
+      "Non-standard fonts corrupt accent characters",
+      "GDPR purge cycle: 4-12 weeks",
+      "EU-focused ATS with strong GDPR compliance"
+    ]
+  },
+  "generic": {
+    "preferred_format": "pdf_text",
+    "max_file_mb": 2,
+    "column_behavior": "concatenate_lr",
+    "table_behavior": "scramble",
+    "header_footer": "stripped",
+    "date_formats_fail": ["YYYY", "season", "ongoing", "current"],
+    "section_headings_canonical": ["Experience", "Education", "Skills", "Summary", "Certifications", "Languages"],
+    "abbreviation_handling": "strict",
+    "ai_layer": "unknown",
+    "parse_fidelity": {"single_col": 0.85, "two_col": 0.55},
+    "quirks": [
+      "Conservative union of worst-case behaviors across all major ATS",
+      "Assume header/footer is stripped",
+      "Assume tables are scrambled",
+      "Assume two-column layouts are concatenated left-to-right",
+      "Assume strict abbreviation handling",
+      "Use single-column layout, standard fonts, canonical section headings"
+    ]
+  }
+}
