@@ -98,7 +98,7 @@ class MarketProfile(BaseModel):
     anonymized_variant: bool
 
 
-# ── ATS / double-reader models (Tranche 2) ──────────────────────────────────────────────
+# ── ATS / double-reader models (Tranche 2) ─────────────────────────────────────────────
 
 
 class Breakage(BaseModel):
@@ -140,7 +140,7 @@ class ScoreReport(BaseModel):
     delta: dict | None  # {parsability_before, parsability_after, breakage_delta} if after given
 
 
-# ── Match / gap models (Tranche 3) ────────────────────────────────────────────────
+# ── Match / gap models (Tranche 3) ────────────────────────────────────────────
 
 
 class RequirementCoverage(BaseModel):
@@ -175,7 +175,7 @@ class KeywordGap(BaseModel):
     evidence: str | None = None
 
 
-# ── Rewrite scaffolding models (Tranche 4) ────────────────────────────────────────────
+# ── Rewrite scaffolding models (Tranche 4) ──────────────────────────────────────────
 
 
 class XyzScaffold(BaseModel):
@@ -203,7 +203,7 @@ class Claim(BaseModel):
     location: str  # JSON-path-style location, e.g. "work[0].highlights[2]"
 
 
-# ── Render models (Tranche 5) ──────────────────────────────────────────────────
+# ── Render models (Tranche 5) ──────────────────────────────────────────────
 
 
 class RenderFile(BaseModel):
@@ -222,7 +222,7 @@ class Render(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-# ── Source / job-board models (Phase 2) ─────────────────────────────────────────────
+# ── Source / job-board models (Phase 2) ───────────────────────────────────────────
 
 
 class JobPosting(BaseModel):
@@ -253,7 +253,7 @@ class SourceResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-# ── Phase 2b models ─────────────────────────────────────────────────────────────────
+# ── Phase 2b models ─────────────────────────────────────────────────────
 
 
 class SuccessProbability(BaseModel):
@@ -285,3 +285,54 @@ class MonitorDiff(BaseModel):
     new_jobs: list[JobPosting] = Field(default_factory=list)
     new_count: int
     total_count: int
+
+
+# ── Phase 3 models — recruiter intelligence + network/referral ────────────────
+
+
+class Recruiter(BaseModel):
+    """A recruiter identified from user-pasted text (profile, signature, team page)."""
+
+    name: str
+    title: str | None = None
+    company: str | None = None
+    kind: str = "unknown"  # "in_house" | "agency" | "unknown"
+    source: str = "pasted"
+    linkedin_url: str | None = None
+
+
+class RecruiterQualification(BaseModel):
+    """Fit score + reasons for a recruiter relative to a target job/company."""
+
+    fit_score: float  # 0.0 – 1.0
+    recommend: bool
+    reasons: list[str] = Field(default_factory=list)
+
+
+class Contact(BaseModel):
+    """An email contact record, with honest provenance and verification status."""
+
+    name: str
+    email: str | None = None
+    status: str = "not_found"  # "verified" | "guessed_unverified" | "not_found"
+    source: str
+    company: str | None = None
+
+
+class NetworkPath(BaseModel):
+    """A warm introduction path via a user-provided connection."""
+
+    target_company: str
+    connector: str
+    relationship: str
+    hops: int
+    note: str | None = None
+
+
+class IntroRequest(BaseModel):
+    """A drafted introduction / outreach message scaffold."""
+
+    to: str
+    subject: str
+    body: str
+    lang: str = "fr"
