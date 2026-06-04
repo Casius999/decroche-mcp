@@ -1,5 +1,7 @@
 from fastmcp import FastMCP
 
+from decroche.analytics import analytics_server
+from decroche.apply import apply_server
 from decroche.ats import ats_server
 from decroche.cv import cv_server
 from decroche.market import market_server
@@ -16,6 +18,8 @@ mcp.mount(match_server, namespace="match")
 mcp.mount(source_server, namespace="source")
 mcp.mount(recruiter_server, namespace="recruiter")
 mcp.mount(network_server, namespace="network")
+mcp.mount(apply_server, namespace="apply")
+mcp.mount(analytics_server, namespace="analytics")
 
 
 def main() -> None:

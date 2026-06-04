@@ -98,7 +98,7 @@ class MarketProfile(BaseModel):
     anonymized_variant: bool
 
 
-# ── ATS / double-reader models (Tranche 2) ─────────────────────────────────────────────
+# ── ATS / double-reader models (Tranche 2) ─────────────────────────────────────
 
 
 class Breakage(BaseModel):
@@ -175,7 +175,7 @@ class KeywordGap(BaseModel):
     evidence: str | None = None
 
 
-# ── Rewrite scaffolding models (Tranche 4) ──────────────────────────────────────────
+# ── Rewrite scaffolding models (Tranche 4) ────────────────────────────────────
 
 
 class XyzScaffold(BaseModel):
@@ -203,7 +203,7 @@ class Claim(BaseModel):
     location: str  # JSON-path-style location, e.g. "work[0].highlights[2]"
 
 
-# ── Render models (Tranche 5) ──────────────────────────────────────────────
+# ── Render models (Tranche 5) ──────────────────────────────────────────────────
 
 
 class RenderFile(BaseModel):
@@ -222,7 +222,7 @@ class Render(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-# ── Source / job-board models (Phase 2) ───────────────────────────────────────────
+# ── Source / job-board models (Phase 2) ───────────────────────────────────────
 
 
 class JobPosting(BaseModel):
@@ -253,7 +253,7 @@ class SourceResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-# ── Phase 2b models ─────────────────────────────────────────────────────
+# ── Phase 2b models ───────────────────────────────────────────────────────────
 
 
 class SuccessProbability(BaseModel):
@@ -336,3 +336,97 @@ class IntroRequest(BaseModel):
     subject: str
     body: str
     lang: str = "fr"
+
+
+# ── Phase 4 models — application CRM + apply orchestration ───────────────────
+
+
+class Application(BaseModel):
+    """A job application tracked in the CRM."""
+
+    id: str
+    job_id: str | None = None
+    company: str | None = None
+    role_title: str | None = None
+    source_channel: str = "cold_apply"
+    # "cold_apply" | "referral" | "recruiter_inbound" | "networking"
+    url: str | None = None
+    apply_url: str | None = None
+    stage: str = "saved"
+    # "saved" | "applied" | "screen" | "interview" | "offer" |
+    # "negotiating" | "accepted" | "rejected" | "ghosted"
+    stage_history: list[dict] = Field(default_factory=list)
+    resume_version_id: str | None = None
+    cover_letter_id: str | None = None
+    contact_ids: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    thank_you_sent: bool = False
+    follow_up_sent: bool = False
+    tags: list[str] = Field(default_factory=list)
+
+
+class PrefillPlan(BaseModel):
+    """A plan to pre-fill an ATS application form from a resume."""
+
+    apply_url: str
+    fields: dict[str, str] = Field(default_factory=dict)
+    unmapped: list[str] = Field(default_factory=list)
+    excluded_sensitive: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class QueueItem(BaseModel):
+    """An item in the batch-apply queue, awaiting human approval."""
+
+    job_id: str
+    company: str | None = None
+    role_title: str | None = None
+    apply_url: str
+    prefill: PrefillPlan
+    status: str = "prepared"
+    # "prepared" | "approved" | "sent" | "skipped"
+    preview: str = ""
+
+
+class FunnelStats(BaseModel):
+    """Conversion funnel statistics across all tracked applications."""
+
+    counts: dict[str, int] = Field(default_factory=dict)
+    rates: dict[str, float] = Field(default_factory=dict)
+    bottleneck: str | None = None
+    vs_benchmark: dict[str, str] = Field(default_factory=dict)
+    notes: list[str] = Field(default_factory=list)
+
+
+# ── Phase 4b models — browser automation (gated, safety-critical) ────────────
+
+
+class ActPreview(BaseModel):
+    """Preview or result of a single gated browser step (apply.act).
+
+    When ``blocked=True`` the step was refused before any browser interaction.
+    When ``requires_confirm=True`` and ``blocked=False`` the caller must
+    re-invoke with ``confirm=True`` to actually perform the step.
+    """
+
+    intent: str
+    target: str | None = None
+    would_do: str
+    blocked: bool = False
+    block_reason: str | None = None
+    requires_confirm: bool = True
+
+
+class SendResult(BaseModel):
+    """Result of apply.send_approved.
+
+    ``dry_run=True`` means ``confirm_send=False`` was passed — nothing was
+    submitted.  ``submitted`` counts items that actually had submit clicked.
+    ``skipped`` / ``stopped`` carry dicts with ``job_id`` + ``reason``.
+    """
+
+    attempted: int
+    submitted: int
+    skipped: list[dict] = Field(default_factory=list)
+    stopped: list[dict] = Field(default_factory=list)
+    dry_run: bool = True
