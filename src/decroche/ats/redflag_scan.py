@@ -11,7 +11,7 @@ from typing import Any
 
 import yaml
 
-from decroche.models import JSONResume, RedFlag
+from decroche.models import JSONResume, MarketProfile, RedFlag
 
 # ── Load assets ──────────────────────────────────────────────────────────────
 
@@ -306,13 +306,148 @@ def _check_photo_market(market_id: str, has_photo: bool) -> list[RedFlag]:
     return []
 
 
-def _check_personal_info_market(market_id: str, jr: JSONResume) -> list[RedFlag]:
-    """Check for DOB/nationality when market forbids it (US/UK/CA)."""
-    # JSON Resume doesn't have DOB in basics by default.
-    # We use market constraint only — if the market forbids personal info,
-    # we check for explicit markers in the model extras or pass.
-    # This is a lightweight check; full detection requires raw_text scanning.
+def _check_personal_info_market(
+    market_id: str, jr: JSONResume, raw_text: str = ""
+) -> list[RedFlag]:
+    """Check raw_text for DOB/nationality/marital status when market forbids it.
+
+    Loads the MarketProfile for the given market; if personal_info_ok is False,
+    scans raw_text with conservative regex patterns.  Emits wrong_personal_info
+    (CRITICAL) when any of the following are found:
+    - Date of birth indicators: "date de naissance", "né(e) le", "born", "birth",
+      "D.O.B", "DOB", or a 4-digit year near "naissance"/"birth"
+    - Nationality indicators: "nationalit(é/y)"
+    - Marital status: "marital", "situation familiale"
+    """
+    try:
+        from decroche.market.profiles import load_profile
+        profile: MarketProfile = load_profile(market_id)
+    except ValueError:
+        return []
+
+    if profile.personal_info_ok:
+        return []
+
+    _PI_RE = re.compile(
+        r"date\s+de\s+naissance"
+        r"|n[eé]{1,2}(?:e)?\s+le\b"
+        r"|\bborn\b"
+        r"|\bbirth(?:date|day)?\b"
+        r"|\bD\.?O\.?B\.?\b"
+        r"|\bnational(?:it[eé]|ity)\b"
+        r"|\bmarital\b"
+        r"|situation\s+familiale",
+        re.IGNORECASE,
+    )
+
+    if _PI_RE.search(raw_text):
+        m = _PI_RE.search(raw_text)
+        snippet = raw_text[max(0, m.start() - 10): m.end() + 30].strip()
+        return [RedFlag(
+            flag_id="wrong_personal_info",
+            severity=_sev("wrong_personal_info"),
+            location="document text",
+            evidence=snippet[:80],
+            fix=f"Remove DOB/nationality/marital status for the {market_id} market.",
+        )]
     return []
+
+
+_CHARS_PER_PAGE = 3500  # heuristic: ~3500 printable chars per A4/Letter page
+
+
+def _check_length_violation(market_id: str, raw_text: str) -> list[RedFlag]:
+    """Estimate page count from raw_text and flag if it exceeds market's max pages.
+
+    Page-count heuristic: max(chars/3500, lines/45).
+    Uses MarketProfile.length_max_pages for the threshold.
+    """
+    try:
+        from decroche.market.profiles import load_profile
+        profile: MarketProfile = load_profile(market_id)
+    except ValueError:
+        return []
+
+    chars = len(raw_text)
+    lines = len([ln for ln in raw_text.splitlines() if ln.strip()])
+    est_pages = max(chars / _CHARS_PER_PAGE, lines / 45)
+
+    if est_pages > profile.length_max_pages:
+        return [RedFlag(
+            flag_id="length_violation",
+            severity=_sev("length_violation"),
+            location="document",
+            evidence=f"Estimated ~{est_pages:.1f} pages (limit: {profile.length_max_pages})",
+            fix=(
+                f"Shorten the CV to {profile.length_max_pages} page(s) "
+                f"for the {market_id} market."
+            ),
+        )]
+    return []
+
+
+# Patterns for conservative typo detection (no spellchecker dependency).
+# Philosophy: only flag clear-cut mechanical errors, never linguistic choices.
+# Full spell-check is out of scope (deferred — would require a language model or
+# dictionary dep).  This heuristic keeps precision high by targeting only:
+#   1. Doubled consecutive words (e.g. "the the", "le le")
+#   2. Three or more identical letters in a row inside a word (e.g. "excelllent")
+#   3. Stray double-spaces inside a sentence (mid-sentence, not at line start)
+# Rationale for exclusion: lowercase-first-letter of bullet is too context-
+# dependent (French lowercase after colon, code samples, etc.) → omitted.
+_DOUBLED_WORD_RE = re.compile(
+    r"\b(\w{2,})\s+\1\b",  # same word (≥2 chars) repeated: "the the"
+    re.IGNORECASE,
+)
+_TRIPLE_LETTER_RE = re.compile(
+    r"\b\w*([a-zA-Z])\1\1\w*\b",  # 3+ identical consecutive letters inside a word
+)
+_DOUBLE_SPACE_RE = re.compile(
+    r"(?<=[^\s.?!:])  +(?=\w)",  # double space mid-sentence (not after punctuation)
+)
+
+
+def _check_typo_risk(raw_text: str) -> list[RedFlag]:
+    """Conservative deterministic typo heuristics (no spellchecker dependency).
+
+    Only flags clear mechanical errors with very low false-positive rate:
+    - Doubled consecutive words ("the the", "le le")
+    - Three or more identical consecutive letters inside a word ("excelllent")
+    - Stray double spaces mid-sentence
+
+    Full spell-check is intentionally deferred; this function is designed for
+    high precision over high recall.
+    """
+    flags: list[RedFlag] = []
+
+    m = _DOUBLED_WORD_RE.search(raw_text)
+    if m:
+        flags.append(_make_flag(
+            "typo_risk",
+            "document text",
+            f"Doubled word: {m.group(0)!r}",
+        ))
+        return flags  # One flag per document is enough
+
+    m = _TRIPLE_LETTER_RE.search(raw_text)
+    if m:
+        flags.append(_make_flag(
+            "typo_risk",
+            "document text",
+            f"Repeated letters: {m.group(0)!r}",
+        ))
+        return flags
+
+    m = _DOUBLE_SPACE_RE.search(raw_text)
+    if m:
+        snippet = raw_text[max(0, m.start() - 5): m.end() + 10].strip()
+        flags.append(_make_flag(
+            "typo_risk",
+            "document text",
+            f"Double space: {snippet!r}",
+        ))
+
+    return flags
 
 
 def _check_ai_phrasing(raw_text: str) -> list[RedFlag]:
@@ -372,8 +507,10 @@ def redflag_scan(
     flags.extend(_check_years_only_dates(json_resume))
     flags.extend(_check_email(json_resume))
     flags.extend(_check_photo_market(market_id, has_photo))
-    flags.extend(_check_personal_info_market(market_id, json_resume))
+    flags.extend(_check_personal_info_market(market_id, json_resume, raw_text))
     flags.extend(_check_ai_phrasing(raw_text))
     flags.extend(_check_no_quantification(json_resume))
+    flags.extend(_check_length_violation(market_id, raw_text))
+    flags.extend(_check_typo_risk(raw_text))
 
     return flags
