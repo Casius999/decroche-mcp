@@ -13,7 +13,7 @@ from pathlib import Path
 from decroche.ats.structure import DocStructure, analyze_file
 from decroche.models import AtsParseResult, Breakage
 
-# ── Load ATS quirks ─────────────────────────────────────────────────────────────────────────
+# ── Load ATS quirks ───────────────────────────────────────────────────────────────────────
 
 _DATA_DIR = Path(__file__).parent.parent / "data"
 _QUIRKS_PATH = _DATA_DIR / "ats_quirks.json"
@@ -23,7 +23,7 @@ with _QUIRKS_PATH.open(encoding="utf-8") as _f:
 
 VALID_ATS_IDS: list[str] = sorted(_ATS_QUIRKS.keys())
 
-# ── Severity penalty weights ────────────────────────────────────────────────────────────────────
+# ── Severity penalty weights ────────────────────────────────────────────────────────────
 
 _SEVERITY_PENALTY = {
     "CRITICAL": 30,
@@ -102,7 +102,7 @@ def _has_noncanon_heading(text: str, canonical: list[str]) -> bool:
     return False
 
 
-# ── Bad-date breakage detector ─────────────────────────────────────────────────────────────────
+# ── Bad-date breakage detector ─────────────────────────────────────────────────────────────
 
 # Map of ATS date_formats_fail token → detection regex.
 # "YYYY" means a year-only date range like "2019-2021".  A bare year that
@@ -117,7 +117,7 @@ _MONTH_NAME_RE = re.compile(
     r"jul(?:y)?|juil(?:let)?|aug(?:ust)?|ao[uû]t?|"
     r"sep(?:tember|tembre)?|oct(?:ober|obre)?|nov(?:ember|embre)?|"
     r"dec(?:ember|embre)?|d[eé]c(?:embre)?)"
-    r"\\?.\\s+((19|20)\\d{2})\\b",
+    r"\s+((19|20)\d{2})\b",
     re.IGNORECASE,
 )
 
@@ -193,7 +193,7 @@ def _check_bad_dates(raw_text: str, date_formats_fail: list[str]) -> Breakage | 
     return None
 
 
-# ── Breakage detectors ────────────────────────────────────────────────────────────────────────
+# ── Breakage detectors ──────────────────────────────────────────────────────────────────────
 
 
 def _check_two_column(
@@ -309,7 +309,7 @@ def _check_oversized(structure: DocStructure, rules: dict, file_size_mb: float) 
     return None
 
 
-# ── Main entry point ─────────────────────────────────────────────────────────────────────────────
+# ── Main entry point ────────────────────────────────────────────────────────────────────────
 
 
 def parse_sim(
@@ -351,7 +351,7 @@ def parse_sim(
     except Exception:  # noqa: BLE001
         raw_text = ""
 
-    # ── Collect breakages ────────────────────────────────────────────────────────────────────────────
+    # ── Collect breakages ──────────────────────────────────────────────────────────────────
     breakages: list[Breakage] = []
 
     two_col = _check_two_column(structure, rules, raw_text)
@@ -393,7 +393,7 @@ def parse_sim(
         if bad_dates_b:
             breakages.append(bad_dates_b)
 
-    # ── Fields extracted / lost ──────────────────────────────────────────────────────────────────────────
+    # ── Fields extracted / lost ───────────────────────────────────────────────────────────────
     fields_lost: list[str] = []
     if contact_lost:
         fields_lost.append("contact")
@@ -409,7 +409,7 @@ def parse_sim(
         "skills": True,
     }
 
-    # ── Parsability score ──────────────────────────────────────────────────────────────────────────
+    # ── Parsability score ───────────────────────────────────────────────────────────────────
     # Base from ATS single_col fidelity × 100
     fidelity = rules.get("parse_fidelity", {})
     if structure.columns >= 2 and "two_col" in fidelity:

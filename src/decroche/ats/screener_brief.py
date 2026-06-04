@@ -5,6 +5,7 @@ Assembles the 'kit' Claude uses to simulate an ATS screener:
   - rubric: fixed scoring criteria
   - requirements: deterministic keyword extraction from offer_text
 """
+
 from __future__ import annotations
 
 import re
@@ -12,41 +13,205 @@ from collections import Counter
 
 from decroche.models import JSONResume, ScreenerKit
 
-# ── Stopwords (bilingual minimal set) ────────────────────────────────────────
+# ── Stopwords (bilingual minimal set) ──────────────────────────────────────────────────────────────
 
-_STOPWORDS = frozenset({
-    # English
-    "a", "an", "the", "and", "or", "but", "for", "of", "in", "to", "with",
-    "on", "at", "by", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "could",
-    "should", "may", "might", "that", "this", "these", "those", "it", "its",
-    "we", "you", "your", "they", "their", "our", "as", "from", "not", "no",
-    "if", "all", "any", "also", "both", "each", "more", "other", "such",
-    "than", "then", "there", "so", "about", "up", "what", "which", "who",
-    "how", "can", "us", "me", "my", "he", "she", "him", "her", "his", "hers",
-    # French
-    "le", "la", "les", "un", "une", "des", "de", "du", "et", "ou", "mais",
-    "pour", "avec", "sur", "en", "dans", "par", "est", "sont", "être",
-    "avoir", "que", "qui", "ce", "se", "au", "aux", "nous", "vous", "ils",
-    "elles", "je", "tu", "il", "elle", "on", "y", "ne", "pas", "plus",
-    "très", "bien", "tout", "tous", "toutes", "cette", "ces", "même",
-    # Generic filler
-    "looking", "seeking", "candidate", "position", "role", "job", "work",
-    "team", "company", "organization", "requirements", "required", "preferred",
-    "experience", "ability", "strong", "excellent", "good", "great", "well",
-    "profil", "poste", "emploi",
-})
+_STOPWORDS = frozenset(
+    {
+        # English
+        "a",
+        "an",
+        "the",
+        "and",
+        "or",
+        "but",
+        "for",
+        "of",
+        "in",
+        "to",
+        "with",
+        "on",
+        "at",
+        "by",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "could",
+        "should",
+        "may",
+        "might",
+        "that",
+        "this",
+        "these",
+        "those",
+        "it",
+        "its",
+        "we",
+        "you",
+        "your",
+        "they",
+        "their",
+        "our",
+        "as",
+        "from",
+        "not",
+        "no",
+        "if",
+        "all",
+        "any",
+        "also",
+        "both",
+        "each",
+        "more",
+        "other",
+        "such",
+        "than",
+        "then",
+        "there",
+        "so",
+        "about",
+        "up",
+        "what",
+        "which",
+        "who",
+        "how",
+        "can",
+        "us",
+        "me",
+        "my",
+        "he",
+        "she",
+        "him",
+        "her",
+        "his",
+        "hers",
+        # French
+        "le",
+        "la",
+        "les",
+        "un",
+        "une",
+        "des",
+        "de",
+        "du",
+        "et",
+        "ou",
+        "mais",
+        "pour",
+        "avec",
+        "sur",
+        "en",
+        "dans",
+        "par",
+        "est",
+        "sont",
+        "être",
+        "avoir",
+        "que",
+        "qui",
+        "ce",
+        "se",
+        "au",
+        "aux",
+        "nous",
+        "vous",
+        "ils",
+        "elles",
+        "je",
+        "tu",
+        "il",
+        "elle",
+        "on",
+        "y",
+        "ne",
+        "pas",
+        "plus",
+        "très",
+        "bien",
+        "tout",
+        "tous",
+        "toutes",
+        "cette",
+        "ces",
+        "même",
+        # Generic filler
+        "looking",
+        "seeking",
+        "candidate",
+        "position",
+        "role",
+        "job",
+        "work",
+        "team",
+        "company",
+        "organization",
+        "requirements",
+        "required",
+        "preferred",
+        "experience",
+        "ability",
+        "strong",
+        "excellent",
+        "good",
+        "great",
+        "well",
+        "profil",
+        "poste",
+        "emploi",
+    }
+)
 
 # Multiword skill tokens that should be kept together
 _MULTIWORD_SKILLS = [
-    "machine learning", "deep learning", "natural language processing", "computer vision",
-    "data science", "software engineering", "software development", "full stack",
-    "front end", "back end", "continuous integration", "continuous delivery",
-    "ci/cd", "github actions", "gitlab ci", "google cloud", "amazon web services",
-    "microsoft azure", "rest api", "graphql", "postgresql", "mysql", "mongodb",
-    "redis", "elasticsearch", "apache kafka", "docker compose", "kubernetes",
-    "node.js", "react.js", "vue.js", "angular", "spring boot", "django",
-    "machine learning engineering", "mlops", "devops", "data engineering",
+    "machine learning",
+    "deep learning",
+    "natural language processing",
+    "computer vision",
+    "data science",
+    "software engineering",
+    "software development",
+    "full stack",
+    "front end",
+    "back end",
+    "continuous integration",
+    "continuous delivery",
+    "ci/cd",
+    "github actions",
+    "gitlab ci",
+    "google cloud",
+    "amazon web services",
+    "microsoft azure",
+    "rest api",
+    "graphql",
+    "postgresql",
+    "mysql",
+    "mongodb",
+    "redis",
+    "elasticsearch",
+    "apache kafka",
+    "docker compose",
+    "kubernetes",
+    "node.js",
+    "react.js",
+    "vue.js",
+    "angular",
+    "spring boot",
+    "django",
+    "machine learning engineering",
+    "mlops",
+    "devops",
+    "data engineering",
 ]
 
 # Fixed rubric criteria (used by Claude to simulate screening)
@@ -64,7 +229,8 @@ _RUBRIC = [
 ]
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Helpers ──────────────────────────────────────────────────────────────────────────────
+
 
 def _flatten_resume(jr: JSONResume) -> str:
     """Flatten a JSONResume to plain text as an ATS would see it."""
@@ -97,7 +263,9 @@ def _flatten_resume(jr: JSONResume) -> str:
     if jr.education:
         parts.append("Education")
         for edu in jr.education:
-            tokens = filter(None, [edu.institution, edu.area, edu.studyType, edu.startDate, edu.endDate])
+            tokens = filter(
+                None, [edu.institution, edu.area, edu.studyType, edu.startDate, edu.endDate]
+            )
             parts.append(", ".join(tokens))
 
     if jr.skills:
@@ -106,9 +274,9 @@ def _flatten_resume(jr: JSONResume) -> str:
 
     if jr.languages:
         parts.append("Languages")
-        parts.append(", ".join(
-            f"{lang.language or ''} ({lang.fluency or ''})" for lang in jr.languages
-        ))
+        parts.append(
+            ", ".join(f"{lang.language or ''} ({lang.fluency or ''})" for lang in jr.languages)
+        )
 
     return "\n".join(parts)
 
@@ -158,7 +326,8 @@ def _extract_requirements(offer_text: str) -> list[str]:
     return result
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
+# ── Entry point ────────────────────────────────────────────────────────────────────────
+
 
 def screener_brief(
     json_resume: JSONResume,

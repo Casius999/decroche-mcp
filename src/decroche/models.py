@@ -98,7 +98,7 @@ class MarketProfile(BaseModel):
     anonymized_variant: bool
 
 
-# ── ATS / double-reader models (Tranche 2) ─────────────────────────────────────────────
+# ── ATS / double-reader models (Tranche 2) ──────────────────────────────────────────────
 
 
 class Breakage(BaseModel):
@@ -203,7 +203,7 @@ class Claim(BaseModel):
     location: str  # JSON-path-style location, e.g. "work[0].highlights[2]"
 
 
-# ── Render models (Tranche 5) ──────────────────────────────────────────────────────
+# ── Render models (Tranche 5) ──────────────────────────────────────────────────
 
 
 class RenderFile(BaseModel):
@@ -253,7 +253,7 @@ class SourceResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-# ── Phase 2b models ──────────────────────────────────────────────────────────────
+# ── Phase 2b models ─────────────────────────────────────────────────────────────────
 
 
 class SuccessProbability(BaseModel):
