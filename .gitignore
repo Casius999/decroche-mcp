@@ -28,6 +28,9 @@ htmlcov/
 .pytest_cache/
 .mutmut-cache
 .hypothesis/
+# Local pytest basetemp (Windows ACL workaround — never commit)
+.pytmp_run/
+.pytmp_cov/
 
 # --- Build / dist ---
 dist/

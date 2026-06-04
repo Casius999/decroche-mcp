@@ -5,7 +5,13 @@
 - ``require_env``:  like env_key but raises ToolError when any var is missing.
 - ``MissingKeyError``: raised when a required env-var is absent (legacy).
 - ``ToolError``:    user-visible error surfaced by MCP tools.
+
+Security note:
+    ``fetch_json`` wraps all httpx errors so that URLs — which may contain API keys
+    in path segments (Jooble) or query params (Adzuna) — NEVER reach the caller.
+    Only the HTTP status code and the provider label are included in ToolError.
 """
+
 from __future__ import annotations
 
 import os
@@ -65,6 +71,7 @@ async def fetch_json(
     method: str = "GET",
     json_body: Any | None = None,
     timeout: float = 20.0,
+    provider: str | None = None,
 ) -> Any:
     """Fetch a URL and return the parsed JSON body.
 
@@ -75,21 +82,32 @@ async def fetch_json(
         method:    HTTP method, default ``"GET"``.
         json_body: Body to send as JSON (for POST/PUT).
         timeout:   Request timeout in seconds, default 20.
+        provider:  Optional human-readable provider name for error messages.
+                   When set, it is included in ToolError but the URL is NEVER
+                   included (it may contain API keys in path or query params).
 
     Returns:
         Parsed JSON (dict, list, or scalar).
 
     Raises:
-        httpx.HTTPStatusError: on 4xx/5xx responses.
-        httpx.RequestError:    on network/timeout errors.
+        ToolError: on 4xx/5xx HTTP responses or network/timeout errors.
+                   The error message contains ONLY the status code and provider
+                   label — never the full URL or any secrets.
     """
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-        response = await client.request(
-            method,
-            url,
-            params=params,
-            headers=headers,
-            json=json_body,
-        )
-        response.raise_for_status()
-        return response.json()
+    label = provider or "http"
+    try:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+            response = await client.request(
+                method,
+                url,
+                params=params,
+                headers=headers,
+                json=json_body,
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as exc:
+        status = exc.response.status_code
+        raise ToolError(f"{label}: HTTP {status} error from upstream API.") from None
+    except httpx.RequestError as exc:
+        raise ToolError(f"{label}: network error — {type(exc).__name__}.") from None
