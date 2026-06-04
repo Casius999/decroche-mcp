@@ -98,7 +98,7 @@ class MarketProfile(BaseModel):
     anonymized_variant: bool
 
 
-# ── ATS / double-reader models (Tranche 2) ───────────────────────────────────────────────
+# ── ATS / double-reader models (Tranche 2) ──────────────────────────────────────────
 
 class Breakage(BaseModel):
     type: str       # e.g. "two_column", "table", "header_contact", "scanned", "oversized"
@@ -139,7 +139,7 @@ class ScoreReport(BaseModel):
     delta: dict | None          # {parsability_before, parsability_after, breakage_delta} if after given
 
 
-# ── Match / gap models (Tranche 3) ───────────────────────────────────────────────────────
+# ── Match / gap models (Tranche 3) ────────────────────────────────────────────────
 
 class RequirementCoverage(BaseModel):
     requirement: str
@@ -169,3 +169,44 @@ class KeywordGap(BaseModel):
     salience: float
     status: str                 # "addable_honestly" | "genuinely_missing"
     evidence: str | None = None
+
+
+# ── Rewrite scaffolding models (Tranche 4) ────────────────────────────────────────────
+
+class XyzScaffold(BaseModel):
+    """Skeleton for an XYZ-formula bullet rewrite.
+
+    The host LLM fills the prose; this model provides structure + diagnostics.
+    """
+    original: str                    # The raw bullet as-found in the CV
+    verb: str | None                 # Leading action verb detected (lowercased)
+    x: str                           # Achievement object (what was accomplished)
+    y_present: bool                  # True if a metric was detected (%, €, $, ×, number)
+    z: str | None                    # Method clause after "by/via/using/en/à l'aide de"
+    template: str                    # Filled template with bracketed placeholders for unknowns
+    missing_metric_prompt: str | None  # Set when y_present=False — asks for real data only
+    weak_verb: bool                  # True if verb is a duty/responsibility phrase not in strong list
+
+
+class Claim(BaseModel):
+    """A claim in the CV that should be backed by a verifiable artefact."""
+    text: str                        # The bullet / claim text
+    needs_evidence: bool             # True if the claim should be backed by an artefact
+    suggested_artifact: str          # What type of artefact would support this claim
+    location: str                    # JSON-path-style location, e.g. "work[0].highlights[2]"
+
+
+# ── Render models (Tranche 5) ────────────────────────────────────────────────────────
+
+class RenderFile(BaseModel):
+    """A single output artifact produced by cv.render."""
+    kind: str   # "ats_docx" | "styled_html" | "pdf" | "json_resume" | "plain_text"
+    path: str   # Absolute path to the written file
+
+
+class Render(BaseModel):
+    """Result of cv.render: produced files + ATS round-trip proof + warnings."""
+    files: list[RenderFile] = Field(default_factory=list)
+    ats_safe_proof: dict[str, float] = Field(default_factory=dict)
+    # key = "{ats_id}" → parsability_score (0-100)
+    warnings: list[str] = Field(default_factory=list)
