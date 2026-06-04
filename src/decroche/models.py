@@ -98,7 +98,7 @@ class MarketProfile(BaseModel):
     anonymized_variant: bool
 
 
-# ── ATS / double-reader models (Tranche 2) ─────────────────────────────────────
+# ── ATS / double-reader models (Tranche 2) ───────────────────────────────────────────────
 
 class Breakage(BaseModel):
     type: str       # e.g. "two_column", "table", "header_contact", "scanned", "oversized"
@@ -137,3 +137,35 @@ class ScoreReport(BaseModel):
     screener_readiness: str     # "low" | "medium" | "high"
     redflag_count: int
     delta: dict | None          # {parsability_before, parsability_after, breakage_delta} if after given
+
+
+# ── Match / gap models (Tranche 3) ───────────────────────────────────────────────────────
+
+class RequirementCoverage(BaseModel):
+    requirement: str
+    kind: str                   # "must_have" | "nice_to_have"
+    covered: bool
+    evidence: str | None = None  # e.g. "via synonym k8s" or skill name matched
+
+
+class Offer(BaseModel):
+    title: str | None = None
+    must_have: list[str] = Field(default_factory=list)
+    nice_to_have: list[str] = Field(default_factory=list)
+    seniority: str | None = None   # junior|senior|lead|principal|stagiaire|confirmé or "X+ years/ans"
+    hard_requirements: list[str] = Field(default_factory=list)
+    raw: str
+
+
+class MatchScore(BaseModel):
+    score_0_100: float
+    requirement_coverage: list[RequirementCoverage] = Field(default_factory=list)
+    seniority_fit: str          # "under" | "match" | "over" | "unknown"
+    missing_must: list[str] = Field(default_factory=list)
+
+
+class KeywordGap(BaseModel):
+    term: str
+    salience: float
+    status: str                 # "addable_honestly" | "genuinely_missing"
+    evidence: str | None = None

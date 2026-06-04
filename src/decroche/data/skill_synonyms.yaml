@@ -1,0 +1,152 @@
+# Canonical skill → aliases (lowercase, FR+EN bilingual)
+# Format: "canonical term": [alias1, alias2, ...]
+
+kubernetes:
+  - k8s
+docker:
+  - docker-compose
+  - dockercompose
+javascript:
+  - js
+  - javascript.js
+typescript:
+  - ts
+python:
+  - py
+  - python3
+  - python2
+"machine learning":
+  - ml
+  - "apprentissage automatique"
+  - "machine-learning"
+postgresql:
+  - postgres
+  - psql
+  - postgresql db
+"ci/cd":
+  - cicd
+  - "ci cd"
+  - "continuous integration"
+  - "continuous deployment"
+  - "intégration continue"
+  - "integration continue"
+"gestion de projet":
+  - "project management"
+  - "chef de projet"
+  - "project manager"
+  - gestion projet
+react:
+  - reactjs
+  - react.js
+  - "react js"
+vue:
+  - vuejs
+  - vue.js
+  - "vue js"
+angular:
+  - angularjs
+  - angular.js
+nodejs:
+  - node
+  - node.js
+  - "node js"
+  - npm
+  - express
+redis:
+  - redis db
+  - redisdb
+mongodb:
+  - mongo
+  - mongodb atlas
+elasticsearch:
+  - elastic
+  - elk
+  - opensearch
+terraform:
+  - tf
+  - "infrastructure as code"
+  - iac
+ansible:
+  - playbook
+aws:
+  - "amazon web services"
+  - ec2
+  - s3
+  - lambda
+gcp:
+  - "google cloud"
+  - "google cloud platform"
+  - gke
+azure:
+  - "microsoft azure"
+  - "azure cloud"
+java:
+  - jvm
+  - openjdk
+springboot:
+  - spring
+  - "spring boot"
+  - "spring framework"
+linux:
+  - unix
+  - bash
+  - shell
+  - ubuntu
+  - debian
+git:
+  - github
+  - gitlab
+  - bitbucket
+  - "version control"
+  - "contrôle de version"
+  - "controle de version"
+agile:
+  - scrum
+  - kanban
+  - "méthode agile"
+  - "methode agile"
+  - sprint
+sql:
+  - "structured query language"
+  - mysql
+  - sqlite
+  - "base de données"
+  - "base de donnees"
+api:
+  - "rest api"
+  - restful
+  - graphql
+  - "web services"
+devops:
+  - "dev ops"
+  - sre
+  - "site reliability"
+rust:
+  - "rust-lang"
+golang:
+  - go
+  - "go lang"
+  - "go language"
+scala:
+  - akka
+  - "scala language"
+hadoop:
+  - mapreduce
+  - hive
+  - spark
+  - "apache spark"
+  - "big data"
+"deep learning":
+  - dl
+  - "apprentissage profond"
+  - "deep-learning"
+  - neural network
+  - "réseau de neurones"
+  - "reseau de neurones"
+nlp:
+  - "natural language processing"
+  - "traitement du langage naturel"
+  - "traitement automatique du langage"
+  - tal
+pandas:
+  - "pandas python"
