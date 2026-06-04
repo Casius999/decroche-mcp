@@ -8,7 +8,9 @@ Algorithm:
 3. Only include terms NOT already covered by match_score.
 4. For uncovered terms: check if the raw CV text (all fields joined) contains
    the term or any synonym → "addable_honestly", else "genuinely_missing".
-5. Return top *n* by salience score.
+5. Rank by: (a) must_have before nice_to_have, (b) raw term frequency in offer
+   text as tiebreak, (c) tfidf salience as final tiebreak.
+6. Return top *n*.
 
 Integrity rule: never fabricate.  "addable_honestly" only when the term or a
 synonym appears ANYWHERE in the raw CV text.  Evidence records where found.
@@ -24,6 +26,12 @@ from decroche.match.tfidf import salience as tfidf_salience
 from decroche.models import JSONResume, KeywordGap
 
 _TOKEN_RE = re.compile(r"\b\w[\w+#/.'-]{0,49}\b")
+
+
+def _offer_frequency(term: str, offer_text: str) -> int:
+    """Count raw occurrences of *term* (case-insensitive, whole-word) in offer_text."""
+    pattern = re.compile(r"\b" + re.escape(term.lower()) + r"\b", re.IGNORECASE)
+    return len(pattern.findall(offer_text))
 
 
 def _raw_cv_text(jr: JSONResume) -> str:
@@ -57,12 +65,10 @@ def _raw_cv_text(jr: JSONResume) -> str:
 
 def _term_in_raw(term: str, raw_lower: str) -> str | None:
     """Return evidence string if *term* or any synonym appears in *raw_lower*, else None."""
-    # Check term itself
     term_lower = term.lower()
     if re.search(r"\b" + re.escape(term_lower) + r"\b", raw_lower):
         return f"found '{term_lower}' in CV text"
 
-    # Check synonyms
     for alias in expand(normalize(term_lower)):
         if alias != term_lower and re.search(r"\b" + re.escape(alias) + r"\b", raw_lower):
             return f"found synonym '{alias}' in CV text"
@@ -101,6 +107,7 @@ def keyword_gap(
     ]
 
     gaps: list[KeywordGap] = []
+    gap_rank: list[tuple[int, int, float]] = []
 
     seen_norms: set[str] = set()
 
@@ -112,9 +119,10 @@ def keyword_gap(
 
         coverage = _check_coverage(term, kind, candidates)
         if coverage.covered:
-            continue  # Already covered — not a gap.
+            continue
 
         sal = tfidf_salience(term.lower(), offer_text)
+        freq = _offer_frequency(term, offer_text)
 
         evidence = _term_in_raw(term, raw_cv)
         status = "addable_honestly" if evidence is not None else "genuinely_missing"
@@ -127,7 +135,9 @@ def keyword_gap(
                 evidence=evidence,
             )
         )
+        kind_order = 0 if kind == "must_have" else 1
+        gap_rank.append((kind_order, -freq, -sal))
 
-    # Sort by salience descending, take top n.
-    gaps.sort(key=lambda g: g.salience, reverse=True)
+    paired = sorted(zip(gap_rank, gaps), key=lambda x: x[0])
+    gaps = [g for _, g in paired]
     return gaps[:n]

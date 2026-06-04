@@ -6,12 +6,13 @@ Pure deterministic logic — no LLM, no network.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from decroche.ats.structure import DocStructure, analyze_file
 from decroche.models import AtsParseResult, Breakage
 
-# ── Load ATS quirks ──────────────────────────────────────────────────────────
+# ── Load ATS quirks ────────────────────────────────────────────────────────────────
 
 _DATA_DIR = Path(__file__).parent.parent / "data"
 _QUIRKS_PATH = _DATA_DIR / "ats_quirks.json"
@@ -21,7 +22,7 @@ with _QUIRKS_PATH.open(encoding="utf-8") as _f:
 
 VALID_ATS_IDS: list[str] = sorted(_ATS_QUIRKS.keys())
 
-# ── Severity penalty weights ─────────────────────────────────────────────────
+# ── Severity penalty weights ─────────────────────────────────────────────────────
 
 _SEVERITY_PENALTY = {
     "CRITICAL": 30,
@@ -30,9 +31,8 @@ _SEVERITY_PENALTY = {
     "LOW": 3,
 }
 
-# ── Section-heading canonical check ─────────────────────────────────────────
+# ── Section-heading canonical check ────────────────────────────────────────────
 
-# Common non-canonical headings users actually use
 _COMMON_NONCANON = {
     "work experience", "professional experience", "employment history",
     "expérience", "expériences professionnelles", "expérience professionnelle",
@@ -43,19 +43,106 @@ _COMMON_NONCANON = {
     "langues",
 }
 
+def _build_canonical_aliases() -> frozenset[str]:
+    try:
+        from decroche.cv.parse import HEADINGS, _strip_accents
+        aliases: set[str] = set()
+        for _key, alias_list in HEADINGS.items():
+            for a in alias_list:
+                aliases.add(_strip_accents(a.lower()))
+        return frozenset(aliases)
+    except Exception:  # noqa: BLE001
+        return frozenset()
+
+_CV_PARSE_ALIASES: frozenset[str] = _build_canonical_aliases()
+
 
 def _has_noncanon_heading(text: str, canonical: list[str]) -> bool:
-    """Return True if the text contains section headings that are NOT canonical."""
-    # Normalise canonical set to lowercase
-    canon_lower = {h.lower() for h in canonical}
+    from decroche.cv.parse import _strip_accents
+
+    canon_lower = {_strip_accents(h.lower()) for h in canonical}
+
     for line in text.splitlines():
-        stripped = line.strip().rstrip(":").strip().lower()
+        stripped_raw = line.strip().rstrip(":").strip()
+        stripped = _strip_accents(stripped_raw.lower())
         if stripped in _COMMON_NONCANON and stripped not in canon_lower:
+            if stripped in _CV_PARSE_ALIASES:
+                continue
             return True
     return False
 
 
-# ── Breakage detectors ───────────────────────────────────────────────────────
+# ── Bad-date breakage detector ─────────────────────────────────────────────────
+
+_MONTH_NAME_RE = re.compile(
+    r"(?:jan(?:uary|vier)?|feb(?:ruary)?|f[eé]vr?(?:ier)?|mar(?:ch|s)?|"
+    r"apr(?:il)?|avr(?:il)?|may|mai|jun(?:e)?|juin?|"
+    r"jul(?:y)?|juil(?:let)?|aug(?:ust)?|ao[uû]t?|"
+    r"sep(?:tember|tembre)?|oct(?:ober|obre)?|nov(?:ember|embre)?|"
+    r"dec(?:ember|embre)?|d[eé]c(?:embre)?)"
+    r"\.?\s+((19|20)\d{2})\b",
+    re.IGNORECASE,
+)
+
+_YEAR_RANGE_RE = re.compile(
+    r"\b(19|20)\d{2}\s*[-–—]\s*(19|20)\d{2}\b",
+    re.IGNORECASE,
+)
+
+
+def _has_year_only_dates(text: str) -> bool:
+    mon_years: set[str] = set()
+    for m in _MONTH_NAME_RE.finditer(text):
+        mon_years.add(m.group(1))
+
+    for m in _YEAR_RANGE_RE.finditer(text):
+        y1, y2 = m.group(1), m.group(2)
+        if y1 not in mon_years and y2 not in mon_years:
+            return True
+    return False
+
+
+_DATE_FAIL_PATTERNS: dict[str, re.Pattern | None] = {
+    "YYYY": None,
+    "'YY": re.compile(r"'\d{2}\b", re.IGNORECASE),
+    "season": re.compile(
+        r"\b(spring|summer|fall|autumn|winter|printemps|été|automne|hiver)\b",
+        re.IGNORECASE,
+    ),
+    "ongoing": re.compile(r"\bongoing\b", re.IGNORECASE),
+    "current":  re.compile(r"\bcurrent\b", re.IGNORECASE),
+    "present":  re.compile(r"\bpresent\b", re.IGNORECASE),
+    "inconsistency": None,
+}
+
+
+def _check_bad_dates(raw_text: str, date_formats_fail: list[str]) -> Breakage | None:
+    for token in date_formats_fail:
+        if token == "YYYY":
+            if _has_year_only_dates(raw_text):
+                return Breakage(
+                    type="bad_dates",
+                    location="date fields",
+                    severity="MEDIUM",
+                    fix="Use 'Mon YYYY' dates (e.g. Jan 2020) to avoid ATS parse failures.",
+                )
+            continue
+
+        pattern = _DATE_FAIL_PATTERNS.get(token)
+        if pattern is None:
+            continue
+        m = pattern.search(raw_text)
+        if m:
+            return Breakage(
+                type="bad_dates",
+                location="date fields",
+                severity="MEDIUM",
+                fix="Use 'Mon YYYY' dates (e.g. Jan 2020) to avoid ATS parse failures.",
+            )
+    return None
+
+
+# ── Breakage detectors ──────────────────────────────────────────────────────────────
 
 def _check_two_column(
     structure: DocStructure,
@@ -63,13 +150,11 @@ def _check_two_column(
     text: str,
 ) -> Breakage | None:
     if structure.fmt not in ("pdf",):
-        # Two-column detection only meaningful for PDF; DOCX is always single-col logically
         return None
     if structure.columns < 2:
         return None
     col_behavior = rules.get("column_behavior", "concatenate_lr")
     if col_behavior in ("best", "moderate"):
-        # These ATS handle two-column tolerably — only LOW/MEDIUM
         sev = "MEDIUM"
     elif col_behavior == "omit_secondary":
         sev = "HIGH"
@@ -90,7 +175,7 @@ def _check_table(structure: DocStructure, rules: dict) -> Breakage | None:
         return None
     table_behavior = rules.get("table_behavior", "scramble")
     if table_behavior in ("tolerant",):
-        return None  # No breakage for tolerant ATS
+        return None
     if table_behavior == "risky":
         sev = "MEDIUM"
     elif table_behavior in ("scramble", "merge"):
@@ -109,7 +194,6 @@ def _check_header_contact(
     structure: DocStructure,
     rules: dict,
 ) -> tuple[Breakage | None, bool]:
-    """Return (breakage_or_none, contact_will_be_lost)."""
     if not structure.contact_in_header:
         return None, False
     hf_behavior = rules.get("header_footer", "stripped")
@@ -133,7 +217,6 @@ def _check_header_contact(
             ),
             True,
         )
-    # partial / readable — flag as LOW
     return (
         Breakage(
             type="header_contact",
@@ -178,20 +261,6 @@ def parse_sim(
     fmt: str | None = None,
     data: bytes | None = None,
 ) -> AtsParseResult:
-    """Simulate how a given ATS parses the CV file at *path*.
-
-    Args:
-        path: Path to the CV file (PDF, DOCX, TXT, MD).
-        ats_id: ATS identifier from ats_quirks.json (or "generic").
-        fmt: Optional format override ("pdf", "docx", "txt", "md").
-        data: Optional raw bytes (if already loaded).
-
-    Returns:
-        AtsParseResult with parsability_score, breakages, fields_extracted/lost.
-
-    Raises:
-        ValueError: If ats_id is not in ats_quirks.json.
-    """
     if ats_id not in _ATS_QUIRKS:
         raise ValueError(
             f"Unknown ATS id: {ats_id!r}. Valid ids: {VALID_ATS_IDS}"
@@ -205,14 +274,12 @@ def parse_sim(
     structure = analyze_file(p, raw)
     detected_fmt = fmt or structure.fmt
 
-    # Also get raw text for heading check
     try:
         from decroche.cv.parse import extract_text
         raw_text = extract_text(p, raw)
     except Exception:  # noqa: BLE001
         raw_text = ""
 
-    # ── Collect breakages ────────────────────────────────────────────────────
     breakages: list[Breakage] = []
 
     two_col = _check_two_column(structure, rules, raw_text)
@@ -235,7 +302,6 @@ def parse_sim(
     if oversized_b:
         breakages.append(oversized_b)
 
-    # Non-canonical section headings
     canonical = rules.get("section_headings_canonical", [])
     if raw_text and _has_noncanon_heading(raw_text, canonical):
         breakages.append(Breakage(
@@ -249,12 +315,16 @@ def parse_sim(
             ),
         ))
 
-    # ── Fields extracted / lost ──────────────────────────────────────────────
+    date_formats_fail = rules.get("date_formats_fail", [])
+    if raw_text and date_formats_fail:
+        bad_dates_b = _check_bad_dates(raw_text, date_formats_fail)
+        if bad_dates_b:
+            breakages.append(bad_dates_b)
+
     fields_lost: list[str] = []
     if contact_lost:
         fields_lost.append("contact")
 
-    # Two-column for lever → second column omitted (may lose skills)
     if two_col and rules.get("column_behavior") == "omit_secondary":
         fields_lost.append("secondary_column_content")
 
@@ -265,15 +335,12 @@ def parse_sim(
         "skills": True,
     }
 
-    # ── Parsability score ────────────────────────────────────────────────────
-    # Base from ATS single_col fidelity × 100
     fidelity = rules.get("parse_fidelity", {})
     if structure.columns >= 2 and "two_col" in fidelity:
         base = fidelity["two_col"] * 100
     else:
         base = fidelity.get("single_col", 0.85) * 100
 
-    # Subtract weighted penalty for each breakage
     penalty = sum(_SEVERITY_PENALTY.get(b.severity, 8) for b in breakages)
     score = max(0.0, min(100.0, base - penalty))
 

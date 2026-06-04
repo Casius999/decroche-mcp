@@ -6,6 +6,9 @@ Produces a single-file HTML + inline CSS with tasteful, intentional design:
 - System-stack fonts for reliability
 - Generous whitespace, semantic HTML
 - No external assets — fully self-contained
+- Section headings and dates are localized by MarketProfile:
+    * spelling starts with "fr"  → French headings, MM/YYYY dates
+    * otherwise                  → English headings, Mon YYYY dates
 
 PDF rendering via weasyprint is guarded: if unavailable or system deps missing,
 render_pdf_from_html() returns False (caller records a warning, never crashes).
@@ -18,43 +21,61 @@ from pathlib import Path
 
 from decroche.models import JSONResume, MarketProfile
 
-# Month abbreviations for date formatting
-_MONTHS = [
+_MONTHS_EN = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ]
 
+_MONTHS_FR = [
+    "Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin",
+    "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc.",
+]
+
 _DATE_RE = re.compile(r"^(\d{4})-(\d{1,2})(?:-\d+)?$")
 
+_HEADINGS_FR: dict[str, str] = {
+    "Summary": "Profil",
+    "Experience": "Expérience",
+    "Education": "Formation",
+    "Skills": "Compétences",
+    "Certifications": "Certifications",
+    "Languages": "Langues",
+    "Projects": "Projets",
+}
 
-def _fmt_date(raw: str | None) -> str:
+
+def _fmt_date(raw: str | None, date_format: str = "Mon YYYY") -> str:
     if not raw:
         return ""
     raw = raw.strip()
-    if re.match(r"^[A-Za-z]{3}\s+\d{4}$", raw):
+    if re.match(r"^[A-Za-z]{3}", raw):
         return raw
     m = _DATE_RE.match(raw)
     if m:
         year = int(m.group(1))
         month = int(m.group(2))
         if 1 <= month <= 12:
-            return f"{_MONTHS[month - 1]} {year}"
+            if date_format == "MM/YYYY":
+                return f"{month:02d}/{year}"
+            else:
+                return f"{_MONTHS_EN[month - 1]} {year}"
         return str(year)
     if raw.lower() in ("ongoing", "present", "current"):
         return "Present"
     return raw
 
 
-def _date_range(start: str | None, end: str | None) -> str:
-    s = _fmt_date(start)
-    e = _fmt_date(end) or "Present"
+def _date_range(
+    start: str | None, end: str | None, date_format: str = "Mon YYYY"
+) -> str:
+    s = _fmt_date(start, date_format)
+    e = _fmt_date(end, date_format) or "Present"
     if s and e:
         return f"{s} – {e}"
     return s or e
 
 
 def _esc(text: str | None) -> str:
-    """HTML-escape a string safely."""
     if not text:
         return ""
     return html_module.escape(str(text))
@@ -99,7 +120,6 @@ body {
   padding: var(--space-xl) var(--space-lg);
 }
 
-/* ── Header / identity ────────────────────────────────────────────────── */
 header {
   border-bottom: 2px solid var(--color-accent);
   padding-bottom: var(--space-md);
@@ -140,14 +160,12 @@ header {
   content: "";
 }
 
-/* ── Main content ────────────────────────────────────────────────────── */
 main {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
 }
 
-/* ── Section ─────────────────────────────────────────────────────────── */
 section {
   break-inside: avoid;
 }
@@ -163,14 +181,12 @@ section {
   margin-bottom: var(--space-md);
 }
 
-/* ── Summary ─────────────────────────────────────────────────────────── */
 .summary-text {
   color: var(--color-muted);
   font-size: 0.95rem;
   line-height: 1.7;
 }
 
-/* ── Experience / Education entries ─────────────────────────────────────── */
 .entry {
   margin-bottom: var(--space-md);
 }
@@ -235,7 +251,6 @@ section {
   top: 0.1em;
 }
 
-/* ── Skills ─────────────────────────────────────────────────────────────── */
 .skills-grid {
   display: flex;
   flex-wrap: wrap;
@@ -253,7 +268,6 @@ section {
   white-space: nowrap;
 }
 
-/* ── Languages ───────────────────────────────────────────────────────────── */
 .lang-list {
   display: flex;
   flex-wrap: wrap;
@@ -269,7 +283,6 @@ section {
   color: var(--color-muted);
 }
 
-/* ── Print ─────────────────────────────────────────────────────────────── */
 @media print {
   body {
     padding: 0;
@@ -286,26 +299,23 @@ def render_styled_html(
     json_resume: JSONResume,
     market: MarketProfile,
 ) -> str:
-    """Render a single-file HTML+inline CSS CV.
-
-    Deterministic: same input → same output.
-    No external assets. No Jinja2 dependency.
-
-    Args:
-        json_resume: The structured resume data.
-        market: Market profile (controls locale hints, but output is always EN).
-
-    Returns:
-        A complete HTML document as a string.
-    """
     basics = json_resume.basics
     parts: list[str] = []
+
+    is_fr = market.spelling.startswith("fr")
+    date_fmt = market.date_format
+    lang_attr = "fr" if is_fr else "en"
+
+    def _heading(en_key: str) -> str:
+        if is_fr:
+            return _HEADINGS_FR.get(en_key, en_key)
+        return en_key
 
     def w(s: str) -> None:
         parts.append(s)
 
     w("<!DOCTYPE html>")
-    w('<html lang="en">')
+    w(f'<html lang="{lang_attr}">')
     w("<head>")
     w('<meta charset="UTF-8">')
     w('<meta name="viewport" content="width=device-width, initial-scale=1.0">')
@@ -314,14 +324,12 @@ def render_styled_html(
     w("</head>")
     w("<body>")
 
-    # ── Header ───────────────────────────────────────────────────────────────────
     w("<header>")
     w(f'<div class="name">{_esc(basics.name or "")}</div>')
 
     if basics.label:
         w(f'<div class="label">{_esc(basics.label)}</div>')
 
-    # Contact info
     contact_items: list[str] = []
     if basics.email:
         contact_items.append(f'<span class="contact-item">{_esc(basics.email)}</span>')
@@ -354,23 +362,19 @@ def render_styled_html(
         w("</div>")
 
     w("</header>")
-
-    # ── Main ─────────────────────────────────────────────────────────────────────
     w("<main>")
 
-    # Summary
     if basics.summary:
         w('<section aria-labelledby="sec-summary">')
-        w('<h2 class="section-title" id="sec-summary">Summary</h2>')
+        w(f'<h2 class="section-title" id="sec-summary">{_heading("Summary")}</h2>')
         w(f'<p class="summary-text">{_esc(basics.summary)}</p>')
         w("</section>")
 
-    # Experience
     if json_resume.work:
         w('<section aria-labelledby="sec-experience">')
-        w('<h2 class="section-title" id="sec-experience">Experience</h2>')
+        w(f'<h2 class="section-title" id="sec-experience">{_heading("Experience")}</h2>')
         for job in json_resume.work:
-            date_str = _date_range(job.startDate, job.endDate)
+            date_str = _date_range(job.startDate, job.endDate, date_fmt)
             w('<div class="entry">')
             w('<div class="entry-header">')
             w('<div>')
@@ -393,12 +397,11 @@ def render_styled_html(
             w("</div>")
         w("</section>")
 
-    # Education
     if json_resume.education:
         w('<section aria-labelledby="sec-education">')
-        w('<h2 class="section-title" id="sec-education">Education</h2>')
+        w(f'<h2 class="section-title" id="sec-education">{_heading("Education")}</h2>')
         for edu in json_resume.education:
-            date_str = _date_range(edu.startDate, edu.endDate)
+            date_str = _date_range(edu.startDate, edu.endDate, date_fmt)
             degree_parts = []
             if edu.studyType:
                 degree_parts.append(edu.studyType)
@@ -420,10 +423,9 @@ def render_styled_html(
             w("</div>")
         w("</section>")
 
-    # Skills
     if json_resume.skills:
         w('<section aria-labelledby="sec-skills">')
-        w('<h2 class="section-title" id="sec-skills">Skills</h2>')
+        w(f'<h2 class="section-title" id="sec-skills">{_heading("Skills")}</h2>')
         w('<div class="skills-grid">')
         for skill in json_resume.skills:
             if skill.name:
@@ -435,10 +437,9 @@ def render_styled_html(
         w("</div>")
         w("</section>")
 
-    # Languages
     if json_resume.languages:
         w('<section aria-labelledby="sec-languages">')
-        w('<h2 class="section-title" id="sec-languages">Languages</h2>')
+        w(f'<h2 class="section-title" id="sec-languages">{_heading("Languages")}</h2>')
         w('<div class="lang-list">')
         for lang in json_resume.languages:
             if lang.language:
@@ -458,18 +459,6 @@ def render_styled_html(
 
 
 def render_pdf_from_html(html: str, out_path: str | Path) -> bool:
-    """Render HTML to PDF using weasyprint.
-
-    Guards the import: if weasyprint is not installed or system libs (GTK/Cairo)
-    are missing, returns False without raising.
-
-    Args:
-        html: The complete HTML string to render.
-        out_path: Destination PDF file path.
-
-    Returns:
-        True if PDF was written successfully, False if weasyprint unavailable.
-    """
     try:
         from weasyprint import HTML  # type: ignore[import]
     except Exception:  # noqa: BLE001
