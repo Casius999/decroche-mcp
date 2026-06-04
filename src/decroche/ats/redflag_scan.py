@@ -3,6 +3,7 @@
 Implements all flags defined in data/redflags.yaml.
 Pure deterministic logic — no LLM, no network.
 """
+
 from __future__ import annotations
 
 import re
@@ -13,7 +14,7 @@ import yaml
 
 from decroche.models import JSONResume, MarketProfile, RedFlag
 
-# ── Load assets ──────────────────────────────────────────────────────────────
+# ── Load assets ────────────────────────────────────────────────────────────────────────────
 
 _DATA_DIR = Path(__file__).parent.parent / "data"
 
@@ -23,10 +24,7 @@ def _load_yaml(filename: str) -> Any:
         return yaml.safe_load(f)
 
 
-_REDFLAGS_DEF: dict[str, dict] = {
-    flag["id"]: flag
-    for flag in _load_yaml("redflags.yaml")["flags"]
-}
+_REDFLAGS_DEF: dict[str, dict] = {flag["id"]: flag for flag in _load_yaml("redflags.yaml")["flags"]}
 
 _BANNED_WORDS_RAW = _load_yaml("banned_words.yaml")
 _BANNED_WORDS: list[str] = [
@@ -35,11 +33,10 @@ _BANNED_WORDS: list[str] = [
 
 _STRONG_VERBS_RAW = _load_yaml("strong_verbs.yaml")
 _STRONG_VERBS: set[str] = {
-    v.lower()
-    for v in (_STRONG_VERBS_RAW.get("en", []) + _STRONG_VERBS_RAW.get("fr", []))
+    v.lower() for v in (_STRONG_VERBS_RAW.get("en", []) + _STRONG_VERBS_RAW.get("fr", []))
 }
 
-# ── Constants ────────────────────────────────────────────────────────────────
+# ── Constants ─────────────────────────────────────────────────────────────────────────────
 
 # Markets where photos are forbidden
 _PHOTO_FORBIDDEN_MARKETS = {"us", "uk", "ca", "ca-en"}
@@ -67,24 +64,36 @@ _AI_PHRASES = [
 _AI_RE = re.compile("|".join(_AI_PHRASES), re.IGNORECASE)
 
 # Metric patterns: percentages, €/$, numbers with units
-_METRIC_RE = re.compile(r"\d+\s*%|\$[\d,]+|€[\d,]+|\d+[xX×]\b|\d+\s*(?:k|M|B|heures?|hours?|jours?|days?|mois|month)")
+_METRIC_RE = re.compile(
+    r"\d+\s*%|\$[\d,]+|€[\d,]+|\d+[xX×]\b|\d+\s*(?:k|M|B|heures?|hours?|jours?|days?|mois|month)"
+)
 
 # Year-only date: exactly 4 digits, optionally surrounded by whitespace/punctuation
 _YEAR_ONLY_RE = re.compile(r"(?<!\d)(\d{4})(?!\d)")
-_FULL_DATE_RE = re.compile(r"\b(?:0?[1-9]|1[0-2])[\/\-]\d{4}\b|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|"
-                            r"jan|fev|mar|avr|mai|jun|jui|aou|sep|oct|nov|dec)[a-z]*[\s.,-]+\d{4}", re.IGNORECASE)
+_FULL_DATE_RE = re.compile(
+    r"\b(?:0?[1-9]|1[0-2])[\/\-]\d{4}\b|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|"
+    r"jan|fev|mar|avr|mai|jun|jui|aou|sep|oct|nov|dec)[a-z]*[\s.,-]+\d{4}",
+    re.IGNORECASE,
+)
 
 # Throwaway / non-professional email domains
 _THROWAWAY_DOMAINS = {
-    "mailinator.com", "guerrillamail.com", "trashmail.com", "yopmail.com",
-    "sharklasers.com", "guerrillamailblock.com", "spam4.me", "trashmail.io",
-    "throwam.com", "dispostable.com",
+    "mailinator.com",
+    "guerrillamail.com",
+    "trashmail.com",
+    "yopmail.com",
+    "sharklasers.com",
+    "guerrillamailblock.com",
+    "spam4.me",
+    "trashmail.io",
+    "throwam.com",
+    "dispostable.com",
 }
 
 # Email patterns that look non-professional (local part)
 _UNPROFESSIONAL_EMAIL_RE = re.compile(
     r"^(?:"
-    r"[a-z]+[_.]?\d{2,}"      # word + 2+ digits
+    r"[a-z]+[_.]?\d{2,}"  # word + 2+ digits
     r"|[a-z]*[xX]{2,}[a-z]*"  # xXx style
     r"|[a-z]+_?[a-z]+\d{2,}"  # letters then 2+ digits
     r"|.*(?:gamer|kool|leet|swag|xd|irl|pr0|pwn|noob|based).*"  # gaming terms
@@ -93,14 +102,17 @@ _UNPROFESSIONAL_EMAIL_RE = re.compile(
 )
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Helpers ──────────────────────────────────────────────────────────────────────────────────
+
 
 def _sev(flag_id: str) -> str:
     return _REDFLAGS_DEF.get(flag_id, {}).get("severity", "MEDIUM")
 
 
 def _fix(flag_id: str) -> str:
-    return _REDFLAGS_DEF.get(flag_id, {}).get("description_en", "See redflags.yaml for remediation.")
+    return _REDFLAGS_DEF.get(flag_id, {}).get(
+        "description_en", "See redflags.yaml for remediation."
+    )
 
 
 def _make_flag(flag_id: str, location: str, evidence: str) -> RedFlag:
@@ -136,9 +148,23 @@ def _parse_date(date_str: str | None) -> tuple[int, int] | None:
 
     # Month YYYY (English)
     month_map = {
-        "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
-        "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
-        "fev": 2, "avr": 4, "mai": 5, "jui": 7, "aou": 8,
+        "jan": 1,
+        "feb": 2,
+        "mar": 3,
+        "apr": 4,
+        "may": 5,
+        "jun": 6,
+        "jul": 7,
+        "aug": 8,
+        "sep": 9,
+        "oct": 10,
+        "nov": 11,
+        "dec": 12,
+        "fev": 2,
+        "avr": 4,
+        "mai": 5,
+        "jui": 7,
+        "aou": 8,
     }
     m = re.match(r"^([a-z]{3})[a-z]*\s+(\d{4})$", s, re.IGNORECASE)
     if m:
@@ -158,18 +184,21 @@ def _months_between(a: tuple[int, int], b: tuple[int, int]) -> int:
     return (by - ay) * 12 + (bm - am)
 
 
-# ── Individual flag detectors ────────────────────────────────────────────────
+# ── Individual flag detectors ────────────────────────────────────────────────────────────────────
+
 
 def _check_passive_voice(jr: JSONResume) -> list[RedFlag]:
     flags: list[RedFlag] = []
     for i, job in enumerate(jr.work):
         for j, bullet in enumerate(job.highlights):
             if _PASSIVE_RE.search(bullet):
-                flags.append(_make_flag(
-                    "passive_voice",
-                    f"work[{i}].highlights[{j}]",
-                    bullet[:80],
-                ))
+                flags.append(
+                    _make_flag(
+                        "passive_voice",
+                        f"work[{i}].highlights[{j}]",
+                        bullet[:80],
+                    )
+                )
     return flags
 
 
@@ -180,16 +209,19 @@ def _check_duty_bullets(jr: JSONResume) -> list[RedFlag]:
         for j, bullet in enumerate(job.highlights):
             first_word = bullet.strip().split()[0].lower().rstrip(".,;:") if bullet.strip() else ""
             has_strong = first_word in _STRONG_VERBS or any(
-                sv in bullet.lower() for sv in _STRONG_VERBS
+                sv in bullet.lower()
+                for sv in _STRONG_VERBS
                 if len(sv) > 4  # avoid short false positives
             )
             has_metric = bool(_METRIC_RE.search(bullet))
             if not has_strong and not has_metric:
-                flags.append(_make_flag(
-                    "duty_bullets",
-                    f"work[{i}].highlights[{j}]",
-                    bullet[:80],
-                ))
+                flags.append(
+                    _make_flag(
+                        "duty_bullets",
+                        f"work[{i}].highlights[{j}]",
+                        bullet[:80],
+                    )
+                )
     return flags
 
 
@@ -200,11 +232,13 @@ def _check_banned_words(raw_text: str) -> list[RedFlag]:
     for word in _BANNED_WORDS:
         if word in text_lower and word not in found:
             found.add(word)
-            flags.append(_make_flag(
-                "banned_word",
-                "document text",
-                f"Found: {word!r}",
-            ))
+            flags.append(
+                _make_flag(
+                    "banned_word",
+                    "document text",
+                    f"Found: {word!r}",
+                )
+            )
     return flags
 
 
@@ -226,11 +260,13 @@ def _check_employment_gaps(jr: JSONResume) -> list[RedFlag]:
         start_next, _, name_next = dated[k + 1]
         gap = _months_between(end_k, start_next)
         if gap > 3:
-            flags.append(_make_flag(
-                "gap_unlabeled",
-                f"between '{name_k}' and '{name_next}'",
-                f"~{gap} month gap",
-            ))
+            flags.append(
+                _make_flag(
+                    "gap_unlabeled",
+                    f"between '{name_k}' and '{name_next}'",
+                    f"~{gap} month gap",
+                )
+            )
     return flags
 
 
@@ -245,11 +281,13 @@ def _check_job_hopping(jr: JSONResume) -> list[RedFlag]:
             if 0 < dur < 12:
                 short_stints += 1
     if short_stints >= 3:
-        return [_make_flag(
-            "job_hopping",
-            "work history",
-            f"{short_stints} stints shorter than 12 months",
-        )]
+        return [
+            _make_flag(
+                "job_hopping",
+                "work history",
+                f"{short_stints} stints shorter than 12 months",
+            )
+        ]
     return []
 
 
@@ -259,11 +297,13 @@ def _check_years_only_dates(jr: JSONResume) -> list[RedFlag]:
     for i, job in enumerate(jr.work):
         for field_name, val in [("startDate", job.startDate), ("endDate", job.endDate)]:
             if val and re.match(r"^\d{4}$", val.strip()):
-                flags.append(_make_flag(
-                    "years_only_dates",
-                    f"work[{i}].{field_name}",
-                    f"Year-only date: {val!r}",
-                ))
+                flags.append(
+                    _make_flag(
+                        "years_only_dates",
+                        f"work[{i}].{field_name}",
+                        f"Year-only date: {val!r}",
+                    )
+                )
     return flags
 
 
@@ -280,29 +320,35 @@ def _check_email(jr: JSONResume) -> list[RedFlag]:
     local, domain = parts[0], parts[1]
 
     if domain in _THROWAWAY_DOMAINS:
-        return [_make_flag(
-            "email_unprofessional",
-            "basics.email",
-            f"Throwaway domain: {domain!r}",
-        )]
+        return [
+            _make_flag(
+                "email_unprofessional",
+                "basics.email",
+                f"Throwaway domain: {domain!r}",
+            )
+        ]
 
     if _UNPROFESSIONAL_EMAIL_RE.match(local):
-        return [_make_flag(
-            "email_unprofessional",
-            "basics.email",
-            f"Non-professional local part: {local!r}",
-        )]
+        return [
+            _make_flag(
+                "email_unprofessional",
+                "basics.email",
+                f"Non-professional local part: {local!r}",
+            )
+        ]
 
     return []
 
 
 def _check_photo_market(market_id: str, has_photo: bool) -> list[RedFlag]:
     if has_photo and market_id.lower() in _PHOTO_FORBIDDEN_MARKETS:
-        return [_make_flag(
-            "wrong_photo_market",
-            "basics (photo)",
-            f"Photo present; forbidden in market: {market_id}",
-        )]
+        return [
+            _make_flag(
+                "wrong_photo_market",
+                "basics (photo)",
+                f"Photo present; forbidden in market: {market_id}",
+            )
+        ]
     return []
 
 
@@ -321,6 +367,7 @@ def _check_personal_info_market(
     """
     try:
         from decroche.market.profiles import load_profile
+
         profile: MarketProfile = load_profile(market_id)
     except ValueError:
         return []
@@ -342,14 +389,16 @@ def _check_personal_info_market(
 
     if _PI_RE.search(raw_text):
         m = _PI_RE.search(raw_text)
-        snippet = raw_text[max(0, m.start() - 10): m.end() + 30].strip()
-        return [RedFlag(
-            flag_id="wrong_personal_info",
-            severity=_sev("wrong_personal_info"),
-            location="document text",
-            evidence=snippet[:80],
-            fix=f"Remove DOB/nationality/marital status for the {market_id} market.",
-        )]
+        snippet = raw_text[max(0, m.start() - 10) : m.end() + 30].strip()
+        return [
+            RedFlag(
+                flag_id="wrong_personal_info",
+                severity=_sev("wrong_personal_info"),
+                location="document text",
+                evidence=snippet[:80],
+                fix=f"Remove DOB/nationality/marital status for the {market_id} market.",
+            )
+        ]
     return []
 
 
@@ -364,6 +413,7 @@ def _check_length_violation(market_id: str, raw_text: str) -> list[RedFlag]:
     """
     try:
         from decroche.market.profiles import load_profile
+
         profile: MarketProfile = load_profile(market_id)
     except ValueError:
         return []
@@ -373,16 +423,18 @@ def _check_length_violation(market_id: str, raw_text: str) -> list[RedFlag]:
     est_pages = max(chars / _CHARS_PER_PAGE, lines / 45)
 
     if est_pages > profile.length_max_pages:
-        return [RedFlag(
-            flag_id="length_violation",
-            severity=_sev("length_violation"),
-            location="document",
-            evidence=f"Estimated ~{est_pages:.1f} pages (limit: {profile.length_max_pages})",
-            fix=(
-                f"Shorten the CV to {profile.length_max_pages} page(s) "
-                f"for the {market_id} market."
-            ),
-        )]
+        return [
+            RedFlag(
+                flag_id="length_violation",
+                severity=_sev("length_violation"),
+                location="document",
+                evidence=f"Estimated ~{est_pages:.1f} pages (limit: {profile.length_max_pages})",
+                fix=(
+                    f"Shorten the CV to {profile.length_max_pages} page(s) "
+                    f"for the {market_id} market."
+                ),
+            )
+        ]
     return []
 
 
@@ -422,30 +474,36 @@ def _check_typo_risk(raw_text: str) -> list[RedFlag]:
 
     m = _DOUBLED_WORD_RE.search(raw_text)
     if m:
-        flags.append(_make_flag(
-            "typo_risk",
-            "document text",
-            f"Doubled word: {m.group(0)!r}",
-        ))
+        flags.append(
+            _make_flag(
+                "typo_risk",
+                "document text",
+                f"Doubled word: {m.group(0)!r}",
+            )
+        )
         return flags  # One flag per document is enough
 
     m = _TRIPLE_LETTER_RE.search(raw_text)
     if m:
-        flags.append(_make_flag(
-            "typo_risk",
-            "document text",
-            f"Repeated letters: {m.group(0)!r}",
-        ))
+        flags.append(
+            _make_flag(
+                "typo_risk",
+                "document text",
+                f"Repeated letters: {m.group(0)!r}",
+            )
+        )
         return flags
 
     m = _DOUBLE_SPACE_RE.search(raw_text)
     if m:
-        snippet = raw_text[max(0, m.start() - 5): m.end() + 10].strip()
-        flags.append(_make_flag(
-            "typo_risk",
-            "document text",
-            f"Double space: {snippet!r}",
-        ))
+        snippet = raw_text[max(0, m.start() - 5) : m.end() + 10].strip()
+        flags.append(
+            _make_flag(
+                "typo_risk",
+                "document text",
+                f"Double space: {snippet!r}",
+            )
+        )
 
     return flags
 
@@ -453,12 +511,14 @@ def _check_typo_risk(raw_text: str) -> list[RedFlag]:
 def _check_ai_phrasing(raw_text: str) -> list[RedFlag]:
     flags: list[RedFlag] = []
     for m in _AI_RE.finditer(raw_text):
-        snippet = raw_text[max(0, m.start() - 10): m.end() + 30].strip()
-        flags.append(_make_flag(
-            "ai_generic_phrasing",
-            "document text",
-            snippet[:80],
-        ))
+        snippet = raw_text[max(0, m.start() - 10) : m.end() + 30].strip()
+        flags.append(
+            _make_flag(
+                "ai_generic_phrasing",
+                "document text",
+                snippet[:80],
+            )
+        )
         break  # One flag per document is sufficient to avoid noise
     return flags
 
@@ -470,15 +530,18 @@ def _check_no_quantification(jr: JSONResume) -> list[RedFlag]:
         return []
     any_metric = any(_METRIC_RE.search(h) for h in all_highlights)
     if not any_metric:
-        return [_make_flag(
-            "no_quantification",
-            "work highlights",
-            "No metrics found in any work highlight.",
-        )]
+        return [
+            _make_flag(
+                "no_quantification",
+                "work highlights",
+                "No metrics found in any work highlight.",
+            )
+        ]
     return []
 
 
-# ── Main entry point ─────────────────────────────────────────────────────────
+# ── Main entry point ─────────────────────────────────────────────────────────────────────────────
+
 
 def redflag_scan(
     json_resume: JSONResume,

@@ -4,11 +4,12 @@ Combines AtsParseResult (before/after) with optional match score and
 redflag count to produce a ScoreReport.
 Pure deterministic logic — no LLM, no network.
 """
+
 from __future__ import annotations
 
 from decroche.models import AtsParseResult, ScoreReport
 
-# ── Screener-readiness thresholds ────────────────────────────────────────────
+# ── Screener-readiness thresholds ────────────────────────────────────────────────────────
 # parsability + redflag adjustments → tier
 
 _HIGH_PARSABILITY = 75.0
@@ -30,7 +31,8 @@ def _screener_readiness(parsability: float, redflag_count: int) -> str:
     return "medium"
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
+# ── Entry point ─────────────────────────────────────────────────────────────────────────────
+
 
 def score_report(
     before: AtsParseResult,

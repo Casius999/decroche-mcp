@@ -19,6 +19,7 @@ Confidence:
 
 No LLM, no network.  Deterministic.
 """
+
 from __future__ import annotations
 
 import re
@@ -36,16 +37,28 @@ _W_NETWORK = 0.10
 # Seniority keywords that indicate low seniority (more competition)
 _LOW_SENIORITY = re.compile(r"\b(junior|stagiaire|stage|entry|intern|graduate)\b", re.IGNORECASE)
 # Keywords indicating senior/specialist (less competition)
-_HIGH_SENIORITY = re.compile(r"\b(senior|lead|principal|staff|architect|director|vp|head)\b", re.IGNORECASE)
+_HIGH_SENIORITY = re.compile(
+    r"\b(senior|lead|principal|staff|architect|director|vp|head)\b", re.IGNORECASE
+)
 
 _RECENCY_HALF_LIFE_DAYS = 7  # days; posting age beyond which recency drops to ~0.5
 
 
-def _recency_factor(date_posted: str | None) -> tuple[float, bool]:
+def _recency_factor(
+    date_posted: str | None,
+    *,
+    now: datetime | None = None,
+) -> tuple[float, bool]:
     """Return (recency_factor 0–1, known: bool).
 
     Fresher postings → higher score.  Uses an exponential decay with half-life of
     ``_RECENCY_HALF_LIFE_DAYS``.  Unknown date → neutral 0.5.
+
+    Args:
+        date_posted: ISO-8601 date string or None.
+        now:         Reference datetime (timezone-aware UTC) for age calculation.
+                     Defaults to ``datetime.now(timezone.utc)`` when None.
+                     Inject a fixed value in tests for reproducible results.
     """
     if not date_posted:
         return 0.5, False
@@ -60,10 +73,11 @@ def _recency_factor(date_posted: str | None) -> tuple[float, bool]:
     else:
         return 0.5, False
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
-    age_days = max(0.0, (now - parsed).total_seconds() / 86400)
+    ref = (now if now is not None else datetime.now(timezone.utc)).replace(tzinfo=None)
+    age_days = max(0.0, (ref - parsed).total_seconds() / 86400)
     # Exponential decay: factor = exp(-ln(2) * age / half_life)
     import math
+
     factor = math.exp(-math.log(2) * age_days / _RECENCY_HALF_LIFE_DAYS)
     return min(1.0, max(0.0, factor)), True
 
@@ -136,6 +150,7 @@ def success_probability(
     *,
     network_proximity: float | None = None,
     applicants: int | None = None,
+    now: datetime | None = None,
 ) -> SuccessProbability:
     """Estimate application success probability deterministically.
 
@@ -144,6 +159,9 @@ def success_probability(
         fit_score:         Match score 0–100 (from match.score).
         network_proximity: Optional 0–1 float indicating network closeness to hiring team.
         applicants:        Optional known applicant count (from LinkedIn/provider).
+        now:               Optional reference datetime (UTC) for recency calculation.
+                           Defaults to current UTC time.  Inject a fixed value in tests
+                           to get fully reproducible results.
 
     Returns:
         SuccessProbability with score_0_100, factors dict, confidence, and notes.
@@ -151,18 +169,18 @@ def success_probability(
     notes: list[str] = []
     signals_known = 0
 
-    # ── fit ───────────────────────────────────────────────────────────────────────────
+    # ── fit ──────────────────────────────────────────────────────────────────────────
     fit = min(1.0, max(0.0, fit_score / 100.0))
     signals_known += 1  # fit is always provided
 
     # ── recency ────────────────────────────────────────────────────────────────────────
-    recency, recency_known = _recency_factor(job.date_posted)
+    recency, recency_known = _recency_factor(job.date_posted, now=now)
     if recency_known:
         signals_known += 1
     else:
         notes.append("recency: date_posted unknown — using neutral 0.5")
 
-    # ── competition ──────────────────────────────────────────────────────────────────────
+    # ── competition ─────────────────────────────────────────────────────────────────────
     competition, competition_known = _competition_factor(job)
     if competition_known:
         signals_known += 1
@@ -176,7 +194,7 @@ def success_probability(
     else:
         notes.append("hiring_signal: applicant count not provided — using neutral 0.5")
 
-    # ── network ─────────────────────────────────────────────────────────────────────────
+    # ── network ────────────────────────────────────────────────────────────────────────
     if network_proximity is not None:
         network = min(1.0, max(0.0, network_proximity))
         signals_known += 1

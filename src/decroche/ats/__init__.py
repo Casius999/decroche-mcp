@@ -3,6 +3,7 @@
 Mounts as namespace "ats" in the main decroche-mcp server.
 All tools are deterministic (no LLM, no network, no secrets).
 """
+
 from __future__ import annotations
 
 from pathlib import Path
