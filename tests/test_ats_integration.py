@@ -2,6 +2,7 @@
 
 TDD: written before implementation.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -19,10 +20,15 @@ def single_col_pdf(tmp_path_factory) -> Path:
     c = canvas.Canvas(str(p), pagesize=LETTER)
     y = 750
     for line in [
-        "Jane Doe", "jane.doe@example.com", "",
-        "Experience", "Led migration of 12 services to Kubernetes, reducing latency 38%",
-        "Skills", "Python, Go, Kubernetes",
-        "Education", "MIT Computer Science",
+        "Jane Doe",
+        "jane.doe@example.com",
+        "",
+        "Experience",
+        "Led migration of 12 services to Kubernetes, reducing latency 38%",
+        "Skills",
+        "Python, Go, Kubernetes",
+        "Education",
+        "MIT Computer Science",
     ]:
         c.drawString(50, y, line)
         y -= 14
@@ -41,7 +47,9 @@ async def test_ats_tools_registered() -> None:
         tool_names = [t.name for t in tools]
         # After mount with namespace="ats", tools are named "ats_parse_sim" etc.
         # (FastMCP 3.4 uses underscore separator for namespace)
-        ats_tools = [n for n in tool_names if "ats" in n.lower() or "parse_sim" in n or "redflag" in n]
+        ats_tools = [
+            n for n in tool_names if "ats" in n.lower() or "parse_sim" in n or "redflag" in n
+        ]
         assert len(ats_tools) >= 1, f"No ATS tools found. All tools: {tool_names}"
 
 
@@ -69,7 +77,12 @@ async def test_parse_sim_tool_callable(single_col_pdf: Path) -> None:
         assert result is not None
         # FastMCP 3.4 returns a CallToolResult with .content attribute
         content_str = str(result)
-        assert "parsability_score" in content_str or "workday" in content_str or "AtsParseResult" in content_str or len(content_str) > 10
+        assert (
+            "parsability_score" in content_str
+            or "workday" in content_str
+            or "AtsParseResult" in content_str
+            or len(content_str) > 10
+        )
 
 
 @pytest.mark.asyncio

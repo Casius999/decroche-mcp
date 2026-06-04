@@ -9,6 +9,7 @@ Tools (mounted under namespace "match" in the main server):
 
 All tools are thin wrappers. No LLM, no network.  Deterministic.
 """
+
 from __future__ import annotations
 
 from fastmcp import FastMCP

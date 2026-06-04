@@ -3,6 +3,7 @@
 Produces all requested CV artifacts and validates the ats_docx output
 via a live parse_sim round-trip (ATS proof).
 """
+
 from __future__ import annotations
 
 import tempfile
@@ -61,6 +62,7 @@ def _flatten_plain_text(json_resume: JSONResume) -> str:
             if job.startDate or job.endDate:
                 # Reuse date formatter
                 from decroche.cv.render_docx import _date_range
+
                 dr = _date_range(job.startDate, job.endDate)
                 if dr:
                     header = f"{header}  ({dr})"
@@ -84,6 +86,7 @@ def _flatten_plain_text(json_resume: JSONResume) -> str:
             if edu.institution:
                 parts.append(edu.institution)
             from decroche.cv.render_docx import _date_range
+
             dr = _date_range(edu.startDate, edu.endDate)
             entry = ", ".join(parts)
             if dr:
@@ -147,14 +150,14 @@ def render(
         out = Path(out_dir)
         out.mkdir(parents=True, exist_ok=True)
 
-    # ── ats_docx ──────────────────────────────────────────────────────────────
+    # ── ats_docx ─────────────────────────────────────────────────────────────────────────────
     docx_path: Path | None = None
     if "ats_docx" in targets:
         docx_path = out / "cv_ats.docx"
         render_ats_docx(json_resume, market, docx_path)
         files.append(RenderFile(kind="ats_docx", path=str(docx_path.resolve())))
 
-    # ── Round-trip proof ──────────────────────────────────────────────────────
+    # ── Round-trip proof ────────────────────────────────────────────────────────────────────
     # Even if ats_docx was not requested, generate a temp docx just for proof
     if docx_path is None or not docx_path.exists():
         _proof_docx = out / "_cv_proof.docx"
@@ -172,7 +175,7 @@ def render(
         except Exception as exc:  # noqa: BLE001
             warnings.append(f"ats_proof_{ats_id}_failed: {exc}")
 
-    # ── styled_html ───────────────────────────────────────────────────────────
+    # ── styled_html ───────────────────────────────────────────────────────────────────────────
     html_str: str | None = None
     if "styled_html" in targets or "pdf" in targets:
         html_str = render_styled_html(json_resume, market)
@@ -182,7 +185,7 @@ def render(
         html_path.write_text(html_str, encoding="utf-8")
         files.append(RenderFile(kind="styled_html", path=str(html_path.resolve())))
 
-    # ── pdf (best-effort, guarded) ────────────────────────────────────────────
+    # ── pdf (best-effort, guarded) ───────────────────────────────────────────────────────────────
     if "pdf" in targets:
         if html_str is None:
             html_str = render_styled_html(json_resume, market)
@@ -196,7 +199,7 @@ def render(
                 "install with `pip install decroche-mcp[render]`"
             )
 
-    # ── json_resume ───────────────────────────────────────────────────────────
+    # ── json_resume ───────────────────────────────────────────────────────────────────────────
     if "json_resume" in targets:
         json_path = out / "cv_resume.json"
         json_path.write_text(
@@ -205,7 +208,7 @@ def render(
         )
         files.append(RenderFile(kind="json_resume", path=str(json_path.resolve())))
 
-    # ── plain_text ────────────────────────────────────────────────────────────
+    # ── plain_text ───────────────────────────────────────────────────────────────────────────
     if "plain_text" in targets:
         txt_path = out / "cv_plain.txt"
         txt_path.write_text(_flatten_plain_text(json_resume), encoding="utf-8")
