@@ -95,20 +95,17 @@ class TestRenderStyledHtml:
         assert "<style" in html.lower()
 
     def test_no_external_links(self, sample_resume, market_fr):
-        """HTML must be self-contained — no external href/src assets."""
         import re
         html = render_styled_html(sample_resume, market_fr)
         assert not re.search(r'<link[^>]+rel=["\']stylesheet["\']', html, re.I)
         assert not re.search(r'<script[^>]+src=["\']https?://', html, re.I)
 
     def test_deterministic(self, sample_resume, market_fr):
-        """Same input → same output every time."""
         html1 = render_styled_html(sample_resume, market_fr)
         html2 = render_styled_html(sample_resume, market_fr)
         assert html1 == html2
 
     def test_semantic_tags(self, sample_resume, market_fr):
-        """Should use semantic HTML elements."""
         html = render_styled_html(sample_resume, market_fr)
         assert any(tag in html for tag in ("<header", "<main", "<section", "<article", "<h1", "<h2"))
 
@@ -117,16 +114,51 @@ class TestRenderStyledHtml:
         assert "Python" in html
 
 
+class TestRenderLocalization:
+    """FIX 3: localized headings and date formats by market."""
+
+    def test_fr_market_uses_french_headings(self, sample_resume):
+        from decroche.market.profiles import load_profile
+        market_fr = load_profile("fr")
+        html = render_styled_html(sample_resume, market_fr)
+        assert "Expérience" in html or "Expérience" in html
+        assert "Compétences" in html
+
+    def test_us_market_uses_english_headings(self, sample_resume):
+        from decroche.market.profiles import load_profile
+        market_us = load_profile("us")
+        html = render_styled_html(sample_resume, market_us)
+        assert "Experience" in html
+        assert "Skills" in html
+
+    def test_fr_market_no_english_experience_heading(self, sample_resume):
+        from decroche.market.profiles import load_profile
+        import re
+        market_fr = load_profile("fr")
+        html = render_styled_html(sample_resume, market_fr)
+        section_titles = re.findall(r'class="section-title"[^>]*>([^<]+)<', html)
+        for title in section_titles:
+            assert title.strip() != "Experience", (
+                f"Found English 'Experience' heading in FR-market HTML: {title!r}"
+            )
+
+    def test_fr_market_summary_heading_localized(self):
+        from decroche.market.profiles import load_profile
+        from decroche.models import Basics, JSONResume
+        market_fr = load_profile("fr")
+        resume = JSONResume(basics=Basics(name="Test", summary="A great engineer."))
+        html = render_styled_html(resume, market_fr)
+        assert "Profil" in html
+
+
 class TestRenderStyledHtmlMinimal:
     def test_minimal_resume(self, market_fr):
-        """Minimal resume (name only) should not crash."""
         resume = JSONResume(basics=Basics(name="Solo Person"))
         html = render_styled_html(resume, market_fr)
         assert "Solo Person" in html
         assert "<html" in html.lower()
 
     def test_no_work_section(self, market_fr):
-        """Resume with no work entries should still produce valid HTML."""
         resume = JSONResume(
             basics=Basics(name="Fresher", email="f@f.com"),
             skills=[Skill(name="Java")],
@@ -136,7 +168,7 @@ class TestRenderStyledHtmlMinimal:
         assert "Java" in html
 
 
-# ── render_pdf_from_html ──────────────────────────────────────────────────────────────
+# ── render_pdf_from_html ────────────────────────────────────────────────────────────
 
 class TestRenderPdfFromHtml:
     def test_returns_bool(self, sample_resume, market_fr, tmp_path):
@@ -146,7 +178,6 @@ class TestRenderPdfFromHtml:
         assert isinstance(result, bool)
 
     def test_never_raises(self, sample_resume, market_fr, tmp_path):
-        """PDF rendering must never raise — returns False if weasyprint unavailable."""
         html = render_styled_html(sample_resume, market_fr)
         out = tmp_path / "cv_safe.pdf"
         try:
@@ -156,7 +187,6 @@ class TestRenderPdfFromHtml:
             pytest.fail(f"render_pdf_from_html raised unexpectedly: {exc}")
 
     def test_pdf_created_if_true(self, sample_resume, market_fr, tmp_path):
-        """If result is True, the PDF file must exist and be non-empty."""
         html = render_styled_html(sample_resume, market_fr)
         out = tmp_path / "cv_if_true.pdf"
         result = render_pdf_from_html(html, out)

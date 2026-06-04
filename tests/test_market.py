@@ -27,7 +27,7 @@ def test_list_profiles_contains_fr_us():
     assert "fr" in ids and "us" in ids
 
 
-# ── FIX 2: uk, ca-en, ca-fr profiles ────────────────────────────────────────
+# ── FIX 2: uk, ca-en, ca-fr profiles ─────────────────────────────────────────
 
 def test_load_uk_profile():
     p = load_profile("uk")

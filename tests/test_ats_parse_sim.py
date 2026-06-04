@@ -9,10 +9,9 @@ from pathlib import Path
 import pytest
 
 
-# ── Fixtures ───────────────────────────────────────────────────────────────
+# ── Fixtures ───────────────────────────────────────────────────────────────────
 
 def make_single_col_pdf(path: Path) -> None:
-    """Single-column PDF with selectable text (all text in left region x < 300)."""
     from reportlab.lib.pagesizes import LETTER
     from reportlab.pdfgen import canvas
 
@@ -39,22 +38,18 @@ def make_single_col_pdf(path: Path) -> None:
 
 
 def make_two_col_pdf(path: Path) -> None:
-    """Two-column PDF: text placed in two distinct x-bands (left and right)."""
     from reportlab.lib.pagesizes import LETTER
     from reportlab.pdfgen import canvas
 
     c = canvas.Canvas(str(path), pagesize=LETTER)
-    # Left column
     for i, text in enumerate(["Name", "Email", "Phone", "Address", "LinkedIn"]):
         c.drawString(50, 750 - i * 14, text)
-    # Right column — far right to ensure two clusters
     for i, text in enumerate(["Experience", "Led team", "Education", "MIT", "Skills"]):
         c.drawString(350, 750 - i * 14, text)
     c.save()
 
 
 def make_table_docx(path: Path) -> None:
-    """DOCX with a table (skills in a table)."""
     from docx import Document
 
     doc = Document()
@@ -73,11 +68,9 @@ def make_table_docx(path: Path) -> None:
 
 
 def make_header_contact_docx(path: Path) -> None:
-    """DOCX with contact info (email/phone) in the header."""
     from docx import Document
 
     doc = Document()
-    # Add contact to header
     section = doc.sections[0]
     header = section.header
     header.paragraphs[0].text = "jane.doe@example.com | +1 415 555 0101"
@@ -100,22 +93,19 @@ def ats_fixtures_dir(tmp_path_factory) -> Path:
     return d
 
 
-# ── Tests ─────────────────────────────────────────────────────────────────
+# ── Tests ─────────────────────────────────────────────────────────────────────
 
 def test_single_col_high_parsability_workday(ats_fixtures_dir: Path) -> None:
-    """Single-column, clean PDF → high parsability for workday."""
     from decroche.ats.parse_sim import parse_sim
 
     result = parse_sim(ats_fixtures_dir / "single_col.pdf", "workday")
     assert result.ats_id == "workday"
-    assert result.parsability_score >= 60  # no two_column penalty
-    # No two_column breakage
+    assert result.parsability_score >= 60
     types = [b.type for b in result.breakages]
     assert "two_column" not in types
 
 
 def test_single_col_high_parsability_multiple_ats(ats_fixtures_dir: Path) -> None:
-    """Single-column PDF → reasonably high parsability for several ATS."""
     from decroche.ats.parse_sim import parse_sim
 
     for ats_id in ("greenhouse", "icims", "taleo_oracle"):
@@ -126,19 +116,15 @@ def test_single_col_high_parsability_multiple_ats(ats_fixtures_dir: Path) -> Non
 
 
 def test_two_col_breakage_workday(ats_fixtures_dir: Path) -> None:
-    """Two-column PDF → two_column breakage for workday (concatenate_lr)."""
     from decroche.ats.parse_sim import parse_sim
 
     result = parse_sim(ats_fixtures_dir / "two_col.pdf", "workday")
     types = [b.type for b in result.breakages]
     assert "two_column" in types, f"Expected two_column breakage, got {types}"
-    # Parsability must be lower than single column
-    # workday two_col fidelity 0.55 vs 0.95
     assert result.parsability_score < 80
 
 
 def test_two_col_breakage_taleo(ats_fixtures_dir: Path) -> None:
-    """Two-column PDF → two_column breakage for taleo_oracle."""
     from decroche.ats.parse_sim import parse_sim
 
     result = parse_sim(ats_fixtures_dir / "two_col.pdf", "taleo_oracle")
@@ -147,7 +133,6 @@ def test_two_col_breakage_taleo(ats_fixtures_dir: Path) -> None:
 
 
 def test_two_col_breakage_icims(ats_fixtures_dir: Path) -> None:
-    """Two-column PDF → two_column breakage for icims."""
     from decroche.ats.parse_sim import parse_sim
 
     result = parse_sim(ats_fixtures_dir / "two_col.pdf", "icims")
@@ -156,7 +141,6 @@ def test_two_col_breakage_icims(ats_fixtures_dir: Path) -> None:
 
 
 def test_table_breakage_lever(ats_fixtures_dir: Path) -> None:
-    """DOCX with table → table breakage for lever (scramble)."""
     from decroche.ats.parse_sim import parse_sim
 
     result = parse_sim(ats_fixtures_dir / "table.docx", "lever")
@@ -165,7 +149,6 @@ def test_table_breakage_lever(ats_fixtures_dir: Path) -> None:
 
 
 def test_table_breakage_taleo(ats_fixtures_dir: Path) -> None:
-    """DOCX with table → table breakage for taleo_oracle (worst scramble)."""
     from decroche.ats.parse_sim import parse_sim
 
     result = parse_sim(ats_fixtures_dir / "table.docx", "taleo_oracle")
@@ -174,7 +157,6 @@ def test_table_breakage_taleo(ats_fixtures_dir: Path) -> None:
 
 
 def test_header_contact_workday(ats_fixtures_dir: Path) -> None:
-    """DOCX with contact in header → header_contact breakage + contact in fields_lost for workday."""
     from decroche.ats.parse_sim import parse_sim
 
     result = parse_sim(ats_fixtures_dir / "header_contact.docx", "workday")
@@ -184,7 +166,6 @@ def test_header_contact_workday(ats_fixtures_dir: Path) -> None:
 
 
 def test_unknown_ats_id_raises(ats_fixtures_dir: Path) -> None:
-    """Unknown ATS id → ValueError with list of valid ids."""
     from decroche.ats.parse_sim import parse_sim
 
     with pytest.raises(ValueError, match="unknown_ats"):
@@ -192,7 +173,6 @@ def test_unknown_ats_id_raises(ats_fixtures_dir: Path) -> None:
 
 
 def test_generic_fallback(ats_fixtures_dir: Path) -> None:
-    """generic ATS id is accepted as valid."""
     from decroche.ats.parse_sim import parse_sim
 
     result = parse_sim(ats_fixtures_dir / "single_col.pdf", "generic")
@@ -201,7 +181,6 @@ def test_generic_fallback(ats_fixtures_dir: Path) -> None:
 
 
 def test_ats_result_model_fields(ats_fixtures_dir: Path) -> None:
-    """AtsParseResult has all required fields with correct types."""
     from decroche.ats.parse_sim import parse_sim
     from decroche.models import AtsParseResult
 
@@ -216,7 +195,6 @@ def test_ats_result_model_fields(ats_fixtures_dir: Path) -> None:
 
 
 def test_parsability_score_clamped(ats_fixtures_dir: Path) -> None:
-    """Parsability score is always in [0, 100]."""
     from decroche.ats.parse_sim import parse_sim
 
     for ats_id in ("workday", "taleo_oracle", "ashby", "generic"):
@@ -225,7 +203,6 @@ def test_parsability_score_clamped(ats_fixtures_dir: Path) -> None:
 
 
 def test_breakage_has_required_fields(ats_fixtures_dir: Path) -> None:
-    """Each Breakage has type, location, severity, fix."""
     from decroche.ats.parse_sim import parse_sim
 
     result = parse_sim(ats_fixtures_dir / "two_col.pdf", "workday")
@@ -234,3 +211,63 @@ def test_breakage_has_required_fields(ats_fixtures_dir: Path) -> None:
         assert b.location
         assert b.severity in ("CRITICAL", "HIGH", "MEDIUM", "LOW")
         assert b.fix
+
+
+# ── FIX 5: date_formats_fail + locale-aware headings ─────────────────────────────────
+
+def make_years_only_docx(path: Path) -> None:
+    from docx import Document
+    doc = Document()
+    doc.add_paragraph("Jane Doe")
+    doc.add_paragraph("jane@example.com")
+    doc.add_paragraph("Experience")
+    doc.add_paragraph("Software Engineer - Acme Corp 2019-2021")
+    doc.add_paragraph("Led migration of 12 services to Kubernetes.")
+    doc.add_paragraph("Education")
+    doc.add_paragraph("B.S. Computer Science, MIT 2015-2019")
+    doc.save(str(path))
+
+
+def make_fr_headings_docx(path: Path) -> None:
+    from docx import Document
+    doc = Document()
+    doc.add_paragraph("Marie Dupont")
+    doc.add_paragraph("marie@example.com")
+    doc.add_paragraph("Expérience")
+    doc.add_paragraph("Ingénieure logicielle chez Acme Corp, Jan 2020 - Déc 2023")
+    doc.add_paragraph("Compétences")
+    doc.add_paragraph("Python, Go, Kubernetes, PostgreSQL")
+    doc.add_paragraph("Formation")
+    doc.add_paragraph("Master Informatique, Université Paris-Saclay")
+    doc.save(str(path))
+
+
+@pytest.fixture(scope="session")
+def fix5_fixtures_dir(tmp_path_factory) -> Path:
+    d = tmp_path_factory.mktemp("fix5_fixtures")
+    make_years_only_docx(d / "years_only.docx")
+    make_fr_headings_docx(d / "fr_headings.docx")
+    return d
+
+
+def test_bad_dates_years_only_workday(fix5_fixtures_dir: Path) -> None:
+    from decroche.ats.parse_sim import parse_sim
+
+    result = parse_sim(fix5_fixtures_dir / "years_only.docx", "workday")
+    types = [b.type for b in result.breakages]
+    assert "bad_dates" in types, (
+        f"Expected bad_dates breakage for year-only dates + workday, got: {types}"
+    )
+    bad_date_b = next(b for b in result.breakages if b.type == "bad_dates")
+    assert bad_date_b.severity == "MEDIUM"
+    assert bad_date_b.fix
+
+
+def test_fr_headings_no_dropped_section(fix5_fixtures_dir: Path) -> None:
+    from decroche.ats.parse_sim import parse_sim
+
+    result = parse_sim(fix5_fixtures_dir / "fr_headings.docx", "workday")
+    types = [b.type for b in result.breakages]
+    assert "dropped_section" not in types, (
+        f"FR canonical headings should not trigger dropped_section, got: {types}"
+    )

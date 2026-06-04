@@ -6,14 +6,9 @@ from decroche.match.keyword_gap import keyword_gap
 from decroche.models import Basics, JSONResume, KeywordGap, Skill, Work
 
 
-# ── Fixtures ───────────────────────────────────────────────────────────────────────────
+# ── Fixtures ─────────────────────────────────────────────────────────────────────
 
 def _resume_with_k8s_hidden() -> JSONResume:
-    """Resume where 'kubernetes' appears in basics.label (scanned by _raw_cv_text) but
-    NOT in candidate_terms (which only scans skills, work highlights/summary, basics.summary).
-
-    This means: Kubernetes gap → uncovered by match_score → addable_honestly (found in label).
-    """
     return JSONResume(
         basics=Basics(name="Jane", label="kubernetes expert", summary=None),
         skills=[Skill(name="Python")],
@@ -22,7 +17,6 @@ def _resume_with_k8s_hidden() -> JSONResume:
 
 
 def _resume_no_k8s() -> JSONResume:
-    """Resume with no mention of k8s or Kubernetes anywhere."""
     return JSONResume(
         basics=Basics(name="Bob"),
         skills=[Skill(name="COBOL")],
@@ -65,9 +59,7 @@ class TestKeywordGapReturnType:
 
 class TestAddableHonestly:
     def test_buried_term_is_addable(self):
-        """'Kubernetes' absent from skills but 'k8s' in raw CV text → addable_honestly."""
         result = keyword_gap(_resume_with_k8s_hidden(), OFFER_K8S_RUST)
-        # kubernetes or k8s should appear and be addable
         assert any(g.status == "addable_honestly" for g in result)
 
     def test_addable_has_evidence(self):
@@ -79,7 +71,6 @@ class TestAddableHonestly:
 
 class TestGenuinelyMissing:
     def test_absent_term_is_genuinely_missing(self):
-        """'Haskell' not mentioned anywhere → genuinely_missing."""
         result = keyword_gap(_resume_no_k8s(), OFFER_ONLY_ABSENT)
         statuses = {g.status for g in result}
         assert "genuinely_missing" in statuses
@@ -118,7 +109,69 @@ class TestSalience:
 
 class TestNeverFabricate:
     def test_status_only_valid_values(self):
-        """Status must be one of the two defined values — never anything fabricated."""
         result = keyword_gap(_resume_no_k8s(), OFFER_K8S_RUST)
         for item in result:
             assert item.status in ("addable_honestly", "genuinely_missing")
+
+
+# ── FIX 4: meaningful ranking ─────────────────────────────────────────────────────
+
+OFFER_PRIORITY_RANKING = """
+Senior Backend Engineer
+
+Requirements:
+- PostgreSQL
+- Docker
+
+Nice to have:
+- GraphQL
+- Redis
+"""
+
+OFFER_FREQUENCY_RANKING = """
+Backend Engineer
+
+Requirements:
+- Kafka
+- Kafka integration
+- Kafka streaming
+- Kafka consumer
+
+Nice to have:
+- Flink
+"""
+
+
+def _resume_empty() -> JSONResume:
+    return JSONResume(
+        basics=Basics(name="Empty"),
+        skills=[Skill(name="COBOL")],
+        work=[Work(highlights=["Maintained legacy systems"])],
+    )
+
+
+class TestRankingPriority:
+    def test_must_have_ranks_above_nice_to_have(self):
+        result = keyword_gap(_resume_empty(), OFFER_PRIORITY_RANKING, n=10)
+        must_items = [g for g in result if g.term.lower() in ("postgresql", "docker")]
+        nice_items = [g for g in result if g.term.lower() in ("graphql", "redis")]
+        assert must_items, f"must_have terms not in results: {[g.term for g in result]}"
+        assert nice_items, f"nice_to_have terms not in results: {[g.term for g in result]}"
+        result_terms = [g.term.lower() for g in result]
+        last_must_idx = max(result_terms.index(g.term.lower()) for g in must_items)
+        first_nice_idx = min(result_terms.index(g.term.lower()) for g in nice_items)
+        assert last_must_idx < first_nice_idx, (
+            f"must_have (last at {last_must_idx}) not before nice_to_have "
+            f"(first at {first_nice_idx}): {result_terms}"
+        )
+
+    def test_high_frequency_term_ranks_above_low_frequency(self):
+        result = keyword_gap(_resume_empty(), OFFER_FREQUENCY_RANKING, n=10)
+        terms = [g.term.lower() for g in result]
+        assert "kafka" in terms, f"kafka not in results: {terms}"
+        assert "flink" in terms, f"flink not in results: {terms}"
+        kafka_idx = terms.index("kafka")
+        flink_idx = terms.index("flink")
+        assert kafka_idx < flink_idx, (
+            f"kafka (idx {kafka_idx}) should rank above flink (idx {flink_idx})"
+        )

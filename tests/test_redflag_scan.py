@@ -8,10 +8,9 @@ from __future__ import annotations
 from decroche.models import JSONResume, Basics, Work
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# ── helpers ───────────────────────────────────────────────────────────────────────
 
 def _jr(**kwargs) -> JSONResume:
-    """Minimal JSONResume factory."""
     from decroche.models import Meta
     defaults = dict(
         basics=Basics(name="Jane Doe", email="jane.doe@example.com"),
@@ -28,10 +27,9 @@ def _flag_ids(flags) -> list[str]:
     return [f.flag_id for f in flags]
 
 
-# ── Tests ─────────────────────────────────────────────────────────────────
+# ── Tests ───────────────────────────────────────────────────────────────────────
 
 def test_passive_voice_flagged() -> None:
-    """Bullet in passive voice → passive_voice flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(work=[Work(highlights=["Was responsible for the deployment of services"])])
@@ -42,7 +40,6 @@ def test_passive_voice_flagged() -> None:
 
 
 def test_duty_bullet_no_metric_no_strong_verb() -> None:
-    """Bullet with only a responsibility and no metric/strong verb → duty_bullets."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(work=[Work(highlights=["Responsible for managing the team calendar"])])
@@ -53,7 +50,6 @@ def test_duty_bullet_no_metric_no_strong_verb() -> None:
 
 
 def test_strong_verb_clears_duty_flag() -> None:
-    """Bullet starting with strong verb + metric → no duty_bullets flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(work=[Work(highlights=["Led migration of 12 services to Kubernetes, reducing latency 38%"])])
@@ -64,7 +60,6 @@ def test_strong_verb_clears_duty_flag() -> None:
 
 
 def test_banned_word_flagged() -> None:
-    """Banned word in text → banned_word flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(work=[Work(highlights=["I am a team player and motivated individual"])])
@@ -75,7 +70,6 @@ def test_banned_word_flagged() -> None:
 
 
 def test_banned_word_fr_flagged() -> None:
-    """French banned word (dynamique) → banned_word flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(work=[Work(highlights=["Profil dynamique et motivé avec rigueur"])])
@@ -86,12 +80,11 @@ def test_banned_word_fr_flagged() -> None:
 
 
 def test_employment_gap_flagged() -> None:
-    """Gap > 3 months between work entries → gap_unlabeled flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(work=[
         Work(startDate="2020-01", endDate="2021-01", name="Company A"),
-        Work(startDate="2022-06", endDate="2023-01", name="Company B"),  # ~17 month gap
+        Work(startDate="2022-06", endDate="2023-01", name="Company B"),
     ])
     raw = "Senior engineer at Company A and Company B"
     flags = redflag_scan(jr, raw)
@@ -100,12 +93,11 @@ def test_employment_gap_flagged() -> None:
 
 
 def test_no_gap_no_flag() -> None:
-    """Continuous employment → no gap_unlabeled flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(work=[
         Work(startDate="2020-01", endDate="2021-01", name="Company A"),
-        Work(startDate="2021-02", endDate="2022-01", name="Company B"),  # 1 month gap OK
+        Work(startDate="2021-02", endDate="2022-01", name="Company B"),
     ])
     raw = "Continuous employment"
     flags = redflag_scan(jr, raw)
@@ -114,13 +106,12 @@ def test_no_gap_no_flag() -> None:
 
 
 def test_job_hopping_flagged() -> None:
-    """At least 3 stints < 12 months → job_hopping flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(work=[
-        Work(startDate="2020-01", endDate="2020-06", name="A"),   # 5 months
-        Work(startDate="2020-07", endDate="2021-01", name="B"),   # 6 months
-        Work(startDate="2021-02", endDate="2021-08", name="C"),   # 6 months
+        Work(startDate="2020-01", endDate="2020-06", name="A"),
+        Work(startDate="2020-07", endDate="2021-01", name="B"),
+        Work(startDate="2021-02", endDate="2021-08", name="C"),
     ])
     raw = "Short stints"
     flags = redflag_scan(jr, raw)
@@ -129,7 +120,6 @@ def test_job_hopping_flagged() -> None:
 
 
 def test_no_job_hopping_stable() -> None:
-    """Long stints → no job_hopping flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(work=[
@@ -143,7 +133,6 @@ def test_no_job_hopping_stable() -> None:
 
 
 def test_years_only_dates_flagged() -> None:
-    """Work entry with only year date (e.g. '2020') → years_only_dates flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(work=[Work(startDate="2020", endDate="2021", name="Company")])
@@ -154,7 +143,6 @@ def test_years_only_dates_flagged() -> None:
 
 
 def test_unprofessional_email_flagged() -> None:
-    """Email like 'xXx_gamer99@hotmail.com' → email_unprofessional flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(basics=Basics(name="Jane Doe", email="xXx_gamer99@hotmail.com"))
@@ -165,7 +153,6 @@ def test_unprofessional_email_flagged() -> None:
 
 
 def test_professional_email_not_flagged() -> None:
-    """Professional email → no email_unprofessional flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(basics=Basics(name="Jane Doe", email="jane.doe@gmail.com"))
@@ -176,20 +163,17 @@ def test_professional_email_not_flagged() -> None:
 
 
 def test_wrong_photo_us_market() -> None:
-    """Photo field present + US market → wrong_photo_market CRITICAL flag."""
     from decroche.ats.redflag_scan import redflag_scan
     from decroche.models import Meta
 
     jr = _jr(meta=Meta(market="us"))
     raw = "Photo included in CV"
-    # We encode photo presence via raw_text containing photo indicator
     flags = redflag_scan(jr, raw + " [photo]", market_id="us", has_photo=True)
     ids = _flag_ids(flags)
     assert "wrong_photo_market" in ids
 
 
 def test_no_photo_fr_market_ok() -> None:
-    """No photo in FR market → no wrong_photo_market flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr()
@@ -200,7 +184,6 @@ def test_no_photo_fr_market_ok() -> None:
 
 
 def test_ai_generic_phrasing_flagged() -> None:
-    """'responsible for' phrasing → ai_generic_phrasing flag."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(work=[Work(highlights=["Was responsible for the delivery pipeline"])])
@@ -211,7 +194,6 @@ def test_ai_generic_phrasing_flagged() -> None:
 
 
 def test_redflag_has_required_fields() -> None:
-    """Each RedFlag has flag_id, severity, location, evidence, fix."""
     from decroche.ats.redflag_scan import redflag_scan
     from decroche.models import RedFlag
 
@@ -229,7 +211,6 @@ def test_redflag_has_required_fields() -> None:
 
 
 def test_no_flags_clean_cv() -> None:
-    """Clean CV with strong bullets → minimal/no high-severity flags."""
     from decroche.ats.redflag_scan import redflag_scan
 
     jr = _jr(
@@ -248,3 +229,102 @@ def test_no_flags_clean_cv() -> None:
     flags = redflag_scan(jr, raw)
     critical_and_high = [f for f in flags if f.severity in ("CRITICAL", "HIGH")]
     assert len(critical_and_high) == 0
+
+
+# ── FIX 1: wrong_personal_info, length_violation, typo_risk ───────────────────────
+
+def test_wrong_personal_info_us_market_dob_in_text() -> None:
+    from decroche.ats.redflag_scan import redflag_scan
+
+    jr = _jr()
+    raw = "Jane Doe\njane@example.com\nDate de naissance: 12/03/1990\nIngénieure logicielle"
+    flags = redflag_scan(jr, raw, market_id="us")
+    ids = _flag_ids(flags)
+    assert "wrong_personal_info" in ids
+
+
+def test_wrong_personal_info_flag_is_critical() -> None:
+    from decroche.ats.redflag_scan import redflag_scan
+
+    jr = _jr()
+    raw = "Date de naissance: 12/03/1990\nnationalité: française"
+    flags = redflag_scan(jr, raw, market_id="us")
+    pi_flags = [f for f in flags if f.flag_id == "wrong_personal_info"]
+    assert len(pi_flags) >= 1
+    assert pi_flags[0].severity == "CRITICAL"
+
+
+def test_wrong_personal_info_fr_market_not_flagged() -> None:
+    from decroche.ats.redflag_scan import redflag_scan
+
+    jr = _jr()
+    raw = "Jane Doe\njane@example.com\nIngénieure logicielle avec 5 ans d'expérience."
+    flags = redflag_scan(jr, raw, market_id="fr")
+    ids = _flag_ids(flags)
+    assert "wrong_personal_info" not in ids
+
+
+def test_length_violation_long_cv() -> None:
+    from decroche.ats.redflag_scan import redflag_scan
+
+    long_text = ("Senior Software Engineer. " * 200 +
+                 "Led migration of 12 services.\n" * 100 +
+                 "Built CI/CD pipelines saving 4h/week.\n" * 100)
+    assert len(long_text) > 8000
+    jr = _jr()
+    flags = redflag_scan(jr, long_text, market_id="us")
+    ids = _flag_ids(flags)
+    assert "length_violation" in ids
+
+
+def test_length_violation_short_cv_not_flagged() -> None:
+    from decroche.ats.redflag_scan import redflag_scan
+
+    short_text = "Jane Doe\njane@example.com\nLed migration of 12 services to Kubernetes."
+    jr = _jr()
+    flags = redflag_scan(jr, short_text, market_id="us")
+    ids = _flag_ids(flags)
+    assert "length_violation" not in ids
+
+
+def test_typo_risk_doubled_word() -> None:
+    from decroche.ats.redflag_scan import redflag_scan
+
+    jr = _jr()
+    raw = "Led the the deployment of containerized services on Kubernetes."
+    flags = redflag_scan(jr, raw, market_id="fr")
+    ids = _flag_ids(flags)
+    assert "typo_risk" in ids
+
+
+def test_typo_risk_doubled_word_fr() -> None:
+    from decroche.ats.redflag_scan import redflag_scan
+
+    jr = _jr()
+    raw = "Géré le le déploiement de services sur Kubernetes."
+    flags = redflag_scan(jr, raw, market_id="fr")
+    ids = _flag_ids(flags)
+    assert "typo_risk" in ids
+
+
+def test_typo_risk_triple_letter() -> None:
+    from decroche.ats.redflag_scan import redflag_scan
+
+    jr = _jr()
+    raw = "Produced excelllent results across all projects."
+    flags = redflag_scan(jr, raw, market_id="fr")
+    ids = _flag_ids(flags)
+    assert "typo_risk" in ids
+
+
+def test_typo_risk_clean_cv_no_false_positive() -> None:
+    from decroche.ats.redflag_scan import redflag_scan
+
+    jr = _jr()
+    raw = ("Marie Dupont\nmarie.dupont@example.com\n"
+           "Ingénieure logicielle senior avec 8 ans d'expérience.\n"
+           "Led migration of 12 services to Kubernetes, reducing latency 38%.\n"
+           "Built automated CI/CD pipeline, saving 4 hours/week.")
+    flags = redflag_scan(jr, raw, market_id="fr")
+    ids = _flag_ids(flags)
+    assert "typo_risk" not in ids
