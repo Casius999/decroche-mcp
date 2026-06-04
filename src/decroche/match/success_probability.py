@@ -169,32 +169,32 @@ def success_probability(
     notes: list[str] = []
     signals_known = 0
 
-    # ── fit ──────────────────────────────────────────────────────────────────────────
+    # ── fit ────────────────────────────────────────────────────────────────────────────
     fit = min(1.0, max(0.0, fit_score / 100.0))
     signals_known += 1  # fit is always provided
 
-    # ── recency ────────────────────────────────────────────────────────────────────────
+    # ── recency ─────────────────────────────────────────────────────────────────────
     recency, recency_known = _recency_factor(job.date_posted, now=now)
     if recency_known:
         signals_known += 1
     else:
         notes.append("recency: date_posted unknown — using neutral 0.5")
 
-    # ── competition ─────────────────────────────────────────────────────────────────────
+    # ── competition ───────────────────────────────────────────────────────────────────
     competition, competition_known = _competition_factor(job)
     if competition_known:
         signals_known += 1
     else:
         notes.append("competition: no remote/seniority signals in posting — using neutral 0.5")
 
-    # ── hiring_signal ──────────────────────────────────────────────────────────────────────
+    # ── hiring_signal ────────────────────────────────────────────────────────────────
     hiring_signal, hs_known = _hiring_signal_factor(applicants)
     if hs_known:
         signals_known += 1
     else:
         notes.append("hiring_signal: applicant count not provided — using neutral 0.5")
 
-    # ── network ────────────────────────────────────────────────────────────────────────
+    # ── network ──────────────────────────────────────────────────────────────────────
     if network_proximity is not None:
         network = min(1.0, max(0.0, network_proximity))
         signals_known += 1
@@ -202,7 +202,7 @@ def success_probability(
         network = 0.0
         notes.append("network: network_proximity not provided — using 0.0 (no network boost)")
 
-    # ── weighted score ─────────────────────────────────────────────────────────────────────
+    # ── weighted score ───────────────────────────────────────────────────────────────────
     raw_score = (
         _W_FIT * fit
         + _W_RECENCY * recency
@@ -212,7 +212,7 @@ def success_probability(
     )
     score = round(min(100.0, max(0.0, raw_score * 100.0)), 2)
 
-    # ── confidence ───────────────────────────────────────────────────────────────────────
+    # ── confidence ──────────────────────────────────────────────────────────────────────
     if signals_known >= 4:
         confidence = "high"
     elif signals_known >= 2:

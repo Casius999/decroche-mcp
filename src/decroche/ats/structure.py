@@ -4,6 +4,7 @@ Operates on the ORIGINAL file (raw bytes / pdfplumber / python-docx),
 returning a DocStructure dataclass that describes layout properties.
 No LLM, no network, deterministic.
 """
+
 from __future__ import annotations
 
 import io
@@ -21,15 +22,17 @@ _CONTACT_PATTERNS = re.compile(r"@|tel:|phone:|mobile:|fax:|\+\d|\d{2}[\s.\-]\d{
 @dataclass
 class DocStructure:
     """Layout properties extracted from the raw document."""
-    fmt: str                      # "pdf" | "docx" | "txt" | "md"
-    columns: int                  # 1 or >=2
+
+    fmt: str  # "pdf" | "docx" | "txt" | "md"
+    columns: int  # 1 or >=2
     has_tables: bool
     contact_in_header: bool
     page_count: int
     total_chars: int
 
 
-# ── PDF detection ────────────────────────────────────────────────────────────
+# ── PDF detection ────────────────────────────────────────────────────────────────────────
+
 
 def detect_columns(page) -> int:  # type: ignore[no-untyped-def]
     """Cluster word x0 positions → 1 vs ≥2 columns.
@@ -152,7 +155,8 @@ def analyze_pdf(data: bytes) -> DocStructure:
     )
 
 
-# ── DOCX detection ───────────────────────────────────────────────────────────
+# ── DOCX detection ──────────────────────────────────────────────────────────────────────
+
 
 def _header_footer_text_docx(doc) -> str:  # type: ignore[no-untyped-def]
     """Extract text from all section headers and footers."""
@@ -195,12 +199,13 @@ def analyze_docx(data: bytes) -> DocStructure:
         columns=1,  # DOCX is always treated as single-column (tables detected separately)
         has_tables=has_tbl,
         contact_in_header=contact_hf,
-        page_count=1,           # python-docx does not expose page count easily
+        page_count=1,  # python-docx does not expose page count easily
         total_chars=total_chars,
     )
 
 
-# ── Plain text / markdown ────────────────────────────────────────────────────
+# ── Plain text / markdown ────────────────────────────────────────────────────────────────────
+
 
 def analyze_text(data: bytes, fmt: str = "txt") -> DocStructure:
     text = data.decode("utf-8", errors="replace")
@@ -214,7 +219,8 @@ def analyze_text(data: bytes, fmt: str = "txt") -> DocStructure:
     )
 
 
-# ── Dispatcher ───────────────────────────────────────────────────────────────
+# ── Dispatcher ─────────────────────────────────────────────────────────────────────────────
+
 
 def analyze_file(path: str | Path, data: bytes | None = None) -> DocStructure:
     """Analyze a document and return its DocStructure."""

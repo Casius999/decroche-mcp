@@ -7,13 +7,32 @@ from decroche.models import Basics, CVParse, JSONResume, Section, Skill, Work
 
 # Bilingual canonical heading map (FR + EN).
 HEADINGS: dict[str, list[str]] = {
-    "summary": ["summary", "professional summary", "profile", "about", "about me",
-                "resume", "profil", "a propos"],
-    "experience": ["experience", "work experience", "professional experience",
-                   "employment", "experience professionnelle", "experiences"],
+    "summary": [
+        "summary",
+        "professional summary",
+        "profile",
+        "about",
+        "about me",
+        "resume",
+        "profil",
+        "a propos",
+    ],
+    "experience": [
+        "experience",
+        "work experience",
+        "professional experience",
+        "employment",
+        "experience professionnelle",
+        "experiences",
+    ],
     "education": ["education", "academic background", "formation", "diplomes"],
-    "skills": ["skills", "technical skills", "core competencies",
-               "competences", "competences techniques"],
+    "skills": [
+        "skills",
+        "technical skills",
+        "core competencies",
+        "competences",
+        "competences techniques",
+    ],
     "certifications": ["certifications", "licenses", "certificats"],
     "languages": ["languages", "langues"],
     "projects": ["projects", "projets"],
@@ -24,9 +43,7 @@ HEADINGS: dict[str, list[str]] = {
 def _strip_accents(s: str) -> str:
     import unicodedata
 
-    return "".join(
-        c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c)
-    )
+    return "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
 
 
 _ALIAS = {_strip_accents(a): k for k, aliases in HEADINGS.items() for a in aliases}
@@ -155,8 +172,11 @@ def parse_text(text: str) -> CVParse:
     jr = to_json_resume(text, sections)
     conf, warns = _confidence(text, sections, jr.basics.email is not None)
     return CVParse(
-        json_resume=jr, raw_text=text, sections=sections,
-        parse_confidence=conf, warnings=warns,
+        json_resume=jr,
+        raw_text=text,
+        sections=sections,
+        parse_confidence=conf,
+        warnings=warns,
     )
 
 

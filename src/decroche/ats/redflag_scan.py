@@ -14,7 +14,7 @@ import yaml
 
 from decroche.models import JSONResume, MarketProfile, RedFlag
 
-# ── Load assets ────────────────────────────────────────────────────────────────────────────
+# ── Load assets ───────────────────────────────────────────────────────────────────────
 
 _DATA_DIR = Path(__file__).parent.parent / "data"
 
@@ -36,7 +36,7 @@ _STRONG_VERBS: set[str] = {
     v.lower() for v in (_STRONG_VERBS_RAW.get("en", []) + _STRONG_VERBS_RAW.get("fr", []))
 }
 
-# ── Constants ─────────────────────────────────────────────────────────────────────────────
+# ── Constants ──────────────────────────────────────────────────────────────────────────────
 
 # Markets where photos are forbidden
 _PHOTO_FORBIDDEN_MARKETS = {"us", "uk", "ca", "ca-en"}
@@ -102,7 +102,7 @@ _UNPROFESSIONAL_EMAIL_RE = re.compile(
 )
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────────────────────
+# ── Helpers ─────────────────────────────────────────────────────────────────────────────────
 
 
 def _sev(flag_id: str) -> str:
@@ -184,7 +184,7 @@ def _months_between(a: tuple[int, int], b: tuple[int, int]) -> int:
     return (by - ay) * 12 + (bm - am)
 
 
-# ── Individual flag detectors ────────────────────────────────────────────────────────────────────
+# ── Individual flag detectors ──────────────────────────────────────────────────────────────────
 
 
 def _check_passive_voice(jr: JSONResume) -> list[RedFlag]:
@@ -540,7 +540,7 @@ def _check_no_quantification(jr: JSONResume) -> list[RedFlag]:
     return []
 
 
-# ── Main entry point ─────────────────────────────────────────────────────────────────────────────
+# ── Main entry point ────────────────────────────────────────────────────────────────────────
 
 
 def redflag_scan(
