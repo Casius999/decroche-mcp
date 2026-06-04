@@ -1,0 +1,29 @@
+{
+  "results": [
+    {
+      "id": "ADZ-001",
+      "title": "Python Backend Engineer",
+      "company": {"display_name": "Acme Corp"},
+      "location": {"display_name": "Paris, Île-de-France"},
+      "redirect_url": "https://www.adzuna.fr/jobs/details/ADZ-001",
+      "created": "2026-05-29T12:00:00Z",
+      "description": "Looking for a Python backend engineer to join our platform team.",
+      "salary_min": 50000,
+      "salary_max": 65000,
+      "category": {"label": "IT Jobs"}
+    },
+    {
+      "id": "ADZ-002",
+      "title": "Data Scientist",
+      "company": {"display_name": "DataLab France"},
+      "location": {"display_name": "Remote"},
+      "redirect_url": "https://www.adzuna.fr/jobs/details/ADZ-002",
+      "created": "2026-05-31T08:00:00Z",
+      "description": "Join our data science team working on NLP and forecasting.",
+      "salary_min": 55000,
+      "salary_max": 75000,
+      "category": {"label": "IT Jobs"}
+    }
+  ],
+  "count": 2
+}

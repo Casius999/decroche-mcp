@@ -1,0 +1,37 @@
+{
+  "SearchResult": {
+    "SearchResultCount": 2,
+    "SearchResultItems": [
+      {
+        "MatchedObjectId": "USA-001",
+        "MatchedObjectDescriptor": {
+          "PositionID": "USA-001",
+          "PositionTitle": "Software Engineer",
+          "OrganizationName": "Department of Veterans Affairs",
+          "PositionLocation": [{"LocationName": "Washington, DC"}],
+          "PositionURI": "https://www.usajobs.gov/job/USA-001",
+          "ApplyURI": ["https://apply.usajobs.gov/USA-001"],
+          "PublicationStartDate": "2026-05-25",
+          "QualificationSummary": "Develops and maintains software systems.",
+          "PositionRemuneration": [{"MinimumRange": "95000", "MaximumRange": "120000", "RateIntervalCode": "PA"}],
+          "JobGrade": [{"Code": "GS-12"}]
+        }
+      },
+      {
+        "MatchedObjectId": "USA-002",
+        "MatchedObjectDescriptor": {
+          "PositionID": "USA-002",
+          "PositionTitle": "Data Scientist",
+          "OrganizationName": "Census Bureau",
+          "PositionLocation": [{"LocationName": "Suitland, MD"}],
+          "PositionURI": "https://www.usajobs.gov/job/USA-002",
+          "ApplyURI": ["https://apply.usajobs.gov/USA-002"],
+          "PublicationStartDate": "2026-05-28",
+          "QualificationSummary": "Applies statistical methods to large datasets.",
+          "PositionRemuneration": [{"MinimumRange": "105000", "MaximumRange": "136000", "RateIntervalCode": "PA"}],
+          "JobGrade": [{"Code": "GS-13"}]
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "data": [
+    {
+      "slug": "backend-developer-at-startup-gmbh-berlin-2026-05-28",
+      "company_name": "Startup GmbH",
+      "title": "Backend Developer",
+      "description": "<p>Build microservices in Go.</p>",
+      "remote": false,
+      "url": "https://www.arbeitnow.com/jobs/backend-developer-at-startup-gmbh-berlin-2026-05-28",
+      "tags": ["golang", "microservices", "docker"],
+      "location": "Berlin, Germany",
+      "created_at": 1748390400
+    },
+    {
+      "slug": "devops-engineer-remote-cloudops-2026-05-26",
+      "company_name": "CloudOps GmbH",
+      "title": "DevOps Engineer – Remote",
+      "description": "<p>Own our Terraform infrastructure and CI/CD pipelines. 100% remote position.</p>",
+      "remote": true,
+      "url": "https://www.arbeitnow.com/jobs/devops-engineer-remote-cloudops-2026-05-26",
+      "tags": ["terraform", "aws", "devops", "remote"],
+      "location": "Remote",
+      "created_at": 1748217600
+    },
+    {
+      "slug": "data-analyst-datahouse-munich-2026-05-22",
+      "company_name": "DataHouse AG",
+      "title": "Data Analyst",
+      "description": "<p>Analyse large datasets, build dashboards, support business decisions.</p>",
+      "remote": false,
+      "url": "https://www.arbeitnow.com/jobs/data-analyst-datahouse-munich-2026-05-22",
+      "tags": ["sql", "power-bi", "analytics"],
+      "location": "Munich, Germany",
+      "created_at": 1747872000
+    }
+  ]
+}

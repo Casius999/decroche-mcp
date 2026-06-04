@@ -1,0 +1,24 @@
+[
+  {
+    "id": "lever-job-abc123",
+    "text": "Staff Backend Engineer",
+    "hostedUrl": "https://jobs.lever.co/techstart/lever-job-abc123",
+    "applyUrl": "https://jobs.lever.co/techstart/lever-job-abc123/apply",
+    "categories": {"commitment": "Full-time", "department": "Engineering", "location": "Paris, France", "team": "Platform"},
+    "description": "<p>We're hiring a Staff Backend Engineer to lead architecture initiatives.</p>",
+    "descriptionPlain": "We're hiring a Staff Backend Engineer to lead architecture initiatives.",
+    "createdAt": 1748390400000,
+    "workplaceType": "hybrid"
+  },
+  {
+    "id": "lever-job-def456",
+    "text": "DevOps Engineer",
+    "hostedUrl": "https://jobs.lever.co/techstart/lever-job-def456",
+    "applyUrl": "https://jobs.lever.co/techstart/lever-job-def456/apply",
+    "categories": {"commitment": "Full-time", "department": "Infrastructure", "location": "Remote", "team": "Infra"},
+    "description": "<p>Join our infra team to own Kubernetes clusters and CI/CD pipelines.</p>",
+    "descriptionPlain": "Join our infra team to own Kubernetes clusters and CI/CD pipelines.",
+    "createdAt": 1748044800000,
+    "workplaceType": "remote"
+  }
+]

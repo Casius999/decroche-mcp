@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "id": "sr-posting-aaa",
+      "name": "Senior Data Scientist",
+      "location": {"city": "Sophia Antipolis", "region": "PACA", "country": "France", "remote": {"enabled": false}},
+      "releasedDate": "2026-05-29",
+      "jobAd": {"sections": {"jobDescription": {"text": "<p>Join our data team to build recommendation engines and forecasting models.</p>"}}},
+      "company": {"name": "SmartCo SA"},
+      "applyUrl": "https://jobs.smartrecruiters.com/SmartCoSA/sr-posting-aaa"
+    },
+    {
+      "id": "sr-posting-bbb",
+      "name": "Scrum Master",
+      "location": {"city": "Strasbourg", "region": "Grand Est", "country": "France", "remote": {"enabled": true}},
+      "releasedDate": "2026-05-23",
+      "jobAd": {"sections": {"jobDescription": {"text": "<p>Facilitate agile ceremonies and help teams deliver value continuously.</p>"}}},
+      "company": {"name": "SmartCo SA"},
+      "applyUrl": "https://jobs.smartrecruiters.com/SmartCoSA/sr-posting-bbb"
+    }
+  ],
+  "totalFound": 2
+}

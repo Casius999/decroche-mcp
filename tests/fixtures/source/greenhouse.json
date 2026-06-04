@@ -1,0 +1,28 @@
+{
+  "jobs": [
+    {
+      "id": 4001234,
+      "title": "Senior Software Engineer",
+      "content": "<p>We are looking for a Senior Software Engineer to join our platform team.</p>",
+      "updated_at": "2026-05-28T10:00:00.000Z",
+      "location": {"name": "Paris, France"},
+      "absolute_url": "https://boards.greenhouse.io/acmecorp/jobs/4001234"
+    },
+    {
+      "id": 4001235,
+      "title": "Frontend Engineer – React",
+      "content": "<p>Join our product team to build beautiful, performant UIs.</p>",
+      "updated_at": "2026-05-26T08:30:00.000Z",
+      "location": {"name": "Remote – Europe"},
+      "absolute_url": "https://boards.greenhouse.io/acmecorp/jobs/4001235"
+    },
+    {
+      "id": 4001236,
+      "title": "Data Engineer",
+      "content": "<p>Build data pipelines for our analytics platform.</p>",
+      "updated_at": "2026-05-20T15:00:00.000Z",
+      "location": {"name": "Lyon, France"},
+      "absolute_url": "https://boards.greenhouse.io/acmecorp/jobs/4001236"
+    }
+  ]
+}

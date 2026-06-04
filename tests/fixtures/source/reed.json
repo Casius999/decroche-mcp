@@ -1,0 +1,29 @@
+{
+  "results": [
+    {
+      "jobId": 12345,
+      "jobTitle": "Python Developer",
+      "employerName": "London Tech Ltd",
+      "locationName": "London",
+      "jobUrl": "https://www.reed.co.uk/jobs/python-developer/12345",
+      "date": "2026-05-30",
+      "jobDescription": "Join our team as a Python developer working on fintech applications.",
+      "minimumSalary": 55000,
+      "maximumSalary": 70000,
+      "currency": "GBP"
+    },
+    {
+      "jobId": 12346,
+      "jobTitle": "Full Stack Developer",
+      "employerName": "UK Startup Co",
+      "locationName": "Remote",
+      "jobUrl": "https://www.reed.co.uk/jobs/fullstack/12346",
+      "date": "2026-06-01",
+      "jobDescription": "Full stack developer for an early stage startup.",
+      "minimumSalary": 50000,
+      "maximumSalary": 65000,
+      "currency": "GBP"
+    }
+  ],
+  "totalResults": 2
+}

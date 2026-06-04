@@ -1,0 +1,31 @@
+[
+  {"legal": "This data is from remoteok.com"},
+  {
+    "id": "remoteok-111111",
+    "epoch": 1748390400,
+    "date": "2026-05-28T00:00:00+00:00",
+    "company": "RemoteFirst",
+    "position": "Remote Python Developer",
+    "tags": ["python", "django", "postgresql"],
+    "description": "Build the backend for our SaaS platform. Full remote, competitive salary.",
+    "location": "Worldwide",
+    "salary_min": 60000,
+    "salary_max": 90000,
+    "url": "https://remoteok.com/remote-jobs/remoteok-111111",
+    "apply_url": "https://remoteok.com/l/remoteok-111111"
+  },
+  {
+    "id": "remoteok-222222",
+    "epoch": 1748044800,
+    "date": "2026-05-24T00:00:00+00:00",
+    "company": "DistributedCo",
+    "position": "Senior React Engineer",
+    "tags": ["react", "typescript", "remote"],
+    "description": "Work on cutting-edge React applications with a distributed team.",
+    "location": "Europe",
+    "salary_min": null,
+    "salary_max": null,
+    "url": "https://remoteok.com/remote-jobs/remoteok-222222",
+    "apply_url": "https://remoteok.com/l/remoteok-222222"
+  }
+]

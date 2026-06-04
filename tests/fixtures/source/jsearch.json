@@ -1,0 +1,41 @@
+{
+  "status": "OK",
+  "data": [
+    {
+      "job_id": "JS-001",
+      "job_title": "Software Engineer",
+      "employer_name": "GlobalTech Inc",
+      "job_city": "New York",
+      "job_state": "NY",
+      "job_country": "US",
+      "job_is_remote": false,
+      "job_apply_link": "https://jobs.globaltech.com/apply/JS-001",
+      "job_google_link": "https://www.google.com/search?q=JS-001",
+      "job_posted_at_datetime_utc": "2026-05-27T14:00:00Z",
+      "job_description": "We are looking for a software engineer with 3+ years of experience.",
+      "job_min_salary": 120000,
+      "job_max_salary": 160000,
+      "job_highlights": {
+        "Qualifications": ["3+ years Python", "REST APIs"],
+        "Benefits": ["Health insurance"]
+      }
+    },
+    {
+      "job_id": "JS-002",
+      "job_title": "Senior Data Engineer",
+      "employer_name": "StreamFlow",
+      "job_city": "Remote",
+      "job_state": null,
+      "job_country": "US",
+      "job_is_remote": true,
+      "job_apply_link": "https://streamflow.io/careers/JS-002",
+      "job_posted_at_datetime_utc": "2026-06-01T09:00:00Z",
+      "job_description": "Senior data engineer role focused on real-time streaming pipelines.",
+      "job_min_salary": 140000,
+      "job_max_salary": 180000,
+      "job_highlights": {
+        "Qualifications": ["Kafka", "Spark", "Python"]
+      }
+    }
+  ]
+}

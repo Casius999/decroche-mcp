@@ -1,0 +1,26 @@
+{
+  "jobs": [
+    {
+      "id": "ashby-uuid-111",
+      "title": "Engineering Manager",
+      "isRemote": false,
+      "publishedDate": "2026-05-25T00:00:00.000Z",
+      "descriptionPlain": "Lead a team of 6 engineers building our core product.",
+      "jobUrl": "https://jobs.ashbyhq.com/novacorp/ashby-uuid-111",
+      "applyUrl": "https://jobs.ashbyhq.com/novacorp/ashby-uuid-111/application",
+      "location": "Bordeaux, France",
+      "compensation": {"summaryComponents": [{"label": "Annual Salary", "value": "€70,000 – €90,000"}], "currency": "EUR"}
+    },
+    {
+      "id": "ashby-uuid-222",
+      "title": "Machine Learning Engineer",
+      "isRemote": true,
+      "publishedDate": "2026-05-22T00:00:00.000Z",
+      "descriptionPlain": "Build and deploy ML models at scale.",
+      "jobUrl": "https://jobs.ashbyhq.com/novacorp/ashby-uuid-222",
+      "applyUrl": "https://jobs.ashbyhq.com/novacorp/ashby-uuid-222/application",
+      "location": null,
+      "compensation": null
+    }
+  ]
+}

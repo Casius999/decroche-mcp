@@ -1,0 +1,33 @@
+{
+  "resultats": [
+    {
+      "id": "FT-001",
+      "intitule": "Développeur Python Senior",
+      "dateCreation": "2026-05-28T10:00:00Z",
+      "description": "Nous recherchons un développeur Python confirmé pour rejoindre notre équipe.",
+      "entreprise": {"nom": "TechParis SAS"},
+      "lieuTravail": {"libelle": "Paris 8e"},
+      "salaire": {"libelle": "De 55000 à 70000 euros par an"},
+      "competences": [
+        {"libelle": "Python"},
+        {"libelle": "FastAPI"},
+        {"libelle": "PostgreSQL"}
+      ],
+      "origineOffre": {"urlOrigine": "https://candidat.francetravail.fr/offres/detail/FT-001"}
+    },
+    {
+      "id": "FT-002",
+      "intitule": "Ingénieur DevOps",
+      "dateCreation": "2026-05-30T09:00:00Z",
+      "description": "Poste de DevOps pour gérer notre infrastructure cloud.",
+      "entreprise": {"nom": "CloudFR"},
+      "lieuTravail": {"libelle": "Lyon"},
+      "salaire": {"libelle": "Selon expérience"},
+      "competences": [
+        {"libelle": "Docker"},
+        {"libelle": "Kubernetes"},
+        {"libelle": "Terraform"}
+      ]
+    }
+  ]
+}

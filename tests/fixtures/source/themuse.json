@@ -1,0 +1,28 @@
+{
+  "results": [
+    {
+      "id": 1001,
+      "name": "Frontend Engineer",
+      "company": {"name": "The Muse"},
+      "locations": [{"name": "New York, NY"}],
+      "refs": {"landing_page": "https://www.themuse.com/jobs/themuse/frontend-engineer"},
+      "publication_date": "2026-05-29T00:00:00Z",
+      "contents": "<p>We are looking for a frontend engineer to join our team.</p>",
+      "categories": [{"name": "Engineering"}],
+      "levels": [{"name": "Mid Level"}]
+    },
+    {
+      "id": 1002,
+      "name": "Product Manager",
+      "company": {"name": "Acme Inc"},
+      "locations": [{"name": "Remote"}],
+      "refs": {"landing_page": "https://www.themuse.com/jobs/acme/pm"},
+      "publication_date": "2026-06-02T00:00:00Z",
+      "contents": "<p>Lead our product roadmap for the B2B platform.</p>",
+      "categories": [{"name": "Product"}],
+      "levels": [{"name": "Senior Level"}]
+    }
+  ],
+  "page_count": 1,
+  "total": 2
+}

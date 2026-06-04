@@ -1,0 +1,25 @@
+{
+  "totalCount": 2,
+  "jobs": [
+    {
+      "id": "JOO-001",
+      "title": "Java Developer",
+      "company": "Enterprise Solutions",
+      "location": "Berlin, Germany",
+      "link": "https://jooble.org/job/JOO-001",
+      "snippet": "Experienced Java developer needed for enterprise banking project.",
+      "salary": "€70,000 - €90,000",
+      "updated": "2026-05-31T00:00:00+00:00"
+    },
+    {
+      "id": "JOO-002",
+      "title": "Remote React Developer",
+      "company": "Webify GmbH",
+      "location": "Remote",
+      "link": "https://jooble.org/job/JOO-002",
+      "snippet": "React developer for a remote-first company in the e-commerce space.",
+      "salary": "€60,000 - €80,000",
+      "updated": "2026-06-01T00:00:00+00:00"
+    }
+  ]
+}
