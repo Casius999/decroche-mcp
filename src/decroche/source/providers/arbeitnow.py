@@ -3,9 +3,11 @@
 API:  https://www.arbeitnow.com/api/job-board-api
 Docs: https://documenter.getpostman.com/view/18545278/UVJbJyTq
 """
+
 from __future__ import annotations
 
 import datetime
+from datetime import timezone
 from typing import Any
 
 from decroche.models import JobPosting
@@ -49,9 +51,9 @@ def normalize(raw: dict | list) -> list[JobPosting]:
         date_posted: str | None = None
         if created_at:
             try:
-                date_posted = datetime.datetime.utcfromtimestamp(int(created_at)).strftime(
-                    "%Y-%m-%dT%H:%M:%SZ"
-                )
+                date_posted = datetime.datetime.fromtimestamp(
+                    int(created_at), tz=timezone.utc
+                ).strftime("%Y-%m-%dT%H:%M:%SZ")
             except Exception:
                 date_posted = str(created_at)
 

@@ -5,6 +5,7 @@ Env:  FRANCE_TRAVAIL_ID, FRANCE_TRAVAIL_SECRET
 
 Docs: https://francetravail.io/produits-services/api/offres-demploi
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -14,13 +15,8 @@ import httpx
 from decroche.models import JobPosting
 from decroche.source.http import ToolError, fetch_json, require_env
 
-_TOKEN_URL = (
-    "https://entreprise.francetravail.fr/connexion/oauth2/access_token"
-    "?realm=%2Fpartenaire"
-)
-_SEARCH_URL = (
-    "https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search"
-)
+_TOKEN_URL = "https://entreprise.francetravail.fr/connexion/oauth2/access_token?realm=%2Fpartenaire"
+_SEARCH_URL = "https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search"
 _SCOPE = "api_offresdemploiv2 o2dsoffre"
 
 
@@ -100,9 +96,7 @@ def normalize(raw: dict | list) -> list[JobPosting]:
 
         competences = item.get("competences") or []
         tags = [
-            c.get("libelle", "")
-            for c in competences
-            if isinstance(c, dict) and c.get("libelle")
+            c.get("libelle", "") for c in competences if isinstance(c, dict) and c.get("libelle")
         ]
 
         results.append(

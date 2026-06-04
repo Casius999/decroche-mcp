@@ -5,6 +5,7 @@ Env:  REED_KEY
 
 Docs: https://www.reed.co.uk/developers/jobseeker
 """
+
 from __future__ import annotations
 
 import base64

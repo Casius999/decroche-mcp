@@ -24,6 +24,7 @@ Keyed tools (require env vars — raise ToolError if absent):
 Network errors per keyless provider are caught and surfaced as ``warnings``.
 Keyed providers propagate ToolError (missing key) directly.
 """
+
 from __future__ import annotations
 
 from fastmcp import FastMCP
@@ -54,14 +55,17 @@ from decroche.source.providers import (
 source_server = FastMCP("source")
 
 
-# ── helpers ─────────────────────────────────────────────────────────────────────────────
-
-def _wrap_network_error(func):  # type: ignore[return]  (used as decorator factory below)
-    """(Not used as a decorator — inline try/except in each tool for clarity.)"""
-    pass
+# ── helpers ───────────────────────────────────────────────────────────────────────────
 
 
-async def _safe_fetch_and_normalize(provider: str, coro, normalize_fn, **norm_kwargs) -> SourceResult:
+async def _safe_fetch_and_normalize(
+    provider: str,
+    coro,
+    normalize_fn,
+    *,
+    query: str | None = None,
+    **norm_kwargs,
+) -> SourceResult:
     """Fetch + normalize a single provider; turn any exception into a warning."""
     warnings: list[str] = []
     jobs: list[JobPosting] = []
@@ -72,14 +76,15 @@ async def _safe_fetch_and_normalize(provider: str, coro, normalize_fn, **norm_kw
         warnings.append(f"{provider} error: {type(exc).__name__}: {exc}")
     return SourceResult(
         provider=provider,
-        query=None,
+        query=query,
         count=len(jobs),
         jobs=jobs,
         warnings=warnings,
     )
 
 
-# ── tools ──────────────────────────────────────────────────────────────────────────────
+# ── tools ─────────────────────────────────────────────────────────────────────────────
+
 
 @source_server.tool
 async def greenhouse(board_token: str) -> SourceResult:
@@ -213,22 +218,12 @@ async def remotive(search: str = "") -> SourceResult:
     Returns:
         SourceResult with matching normalised job postings.
     """
-    result = SourceResult(provider="remotive", query=search or None, count=0)
-    warnings: list[str] = []
-    jobs: list[JobPosting] = []
-    try:
-        raw = await _remotive.fetch(search)
-        jobs = _remotive.normalize(raw)
-    except Exception as exc:
-        warnings.append(f"remotive error: {type(exc).__name__}: {exc}")
-    result = SourceResult(
-        provider="remotive",
+    return await _safe_fetch_and_normalize(
+        "remotive",
+        _remotive.fetch(search),
+        _remotive.normalize,
         query=search or None,
-        count=len(jobs),
-        jobs=jobs,
-        warnings=warnings,
     )
-    return result
 
 
 @source_server.tool
@@ -245,7 +240,8 @@ async def arbeitnow() -> SourceResult:
     )
 
 
-# ── keyed provider tools ──────────────────────────────────────────────────────────────────────
+# ── keyed provider tools ─────────────────────────────────────────────────────────────────────
+
 
 @source_server.tool
 async def france_travail(query: str, location: str = "") -> SourceResult:
@@ -455,7 +451,8 @@ async def search_all(
     return jobs
 
 
-# ── monitor tools ─────────────────────────────────────────────────────────────────────────────
+# ── monitor tools ──────────────────────────────────────────────────────────────────────────
+
 
 @source_server.tool
 async def monitor_snapshot(provider: str, key: str, out_path: str) -> dict:

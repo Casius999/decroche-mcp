@@ -5,6 +5,7 @@ Env:  THEMUSE_KEY (optional — if absent, call without key)
 
 Docs: https://www.themuse.com/developers/api/v2
 """
+
 from __future__ import annotations
 
 import os
@@ -64,11 +65,7 @@ def normalize(raw: dict | list) -> list[JobPosting]:
         description = str(contents) if contents else ""
 
         categories = item.get("categories") or []
-        tags = [
-            c.get("name", "")
-            for c in categories
-            if isinstance(c, dict) and c.get("name")
-        ]
+        tags = [c.get("name", "") for c in categories if isinstance(c, dict) and c.get("name")]
 
         levels = item.get("levels") or []
         for lvl in levels:

@@ -3,6 +3,7 @@
 API:  https://api.ashbyhq.com/posting-api/job-board/{name}?includeCompensation=true
 Docs: https://developers.ashbyhq.com/reference/jobpostinglist
 """
+
 from __future__ import annotations
 
 from typing import Any

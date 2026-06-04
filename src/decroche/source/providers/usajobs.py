@@ -5,6 +5,7 @@ Env:  USAJOBS_KEY, USAJOBS_EMAIL
 
 Docs: https://developer.usajobs.gov/API-Reference/GET-api-Search
 """
+
 from __future__ import annotations
 
 from decroche.models import JobPosting
@@ -36,9 +37,7 @@ def normalize(raw: dict | list) -> list[JobPosting]:
     if isinstance(raw, dict):
         search_result = raw.get("SearchResult") or {}
         items: list[dict] = (
-            search_result.get("SearchResultItems", [])
-            if isinstance(search_result, dict)
-            else []
+            search_result.get("SearchResultItems", []) if isinstance(search_result, dict) else []
         )
     else:
         items = list(raw)
@@ -59,18 +58,17 @@ def normalize(raw: dict | list) -> list[JobPosting]:
         locations_data = matched.get("PositionLocation") or []
         if isinstance(locations_data, list) and locations_data:
             first_loc = locations_data[0]
-            location = (
-                first_loc.get("LocationName")
-                if isinstance(first_loc, dict)
-                else None
-            )
+            location = first_loc.get("LocationName") if isinstance(first_loc, dict) else None
         else:
             location = None
 
         remote = None
-        url = matched.get("PositionURI") or matched.get("ApplyURI", [""])[0] or ""
         apply_uri_list = matched.get("ApplyURI")
-        apply_url = apply_uri_list[0] if isinstance(apply_uri_list, list) and apply_uri_list else None
+        _first_apply_uri: str = (
+            apply_uri_list[0] if isinstance(apply_uri_list, list) and apply_uri_list else ""
+        )
+        url = matched.get("PositionURI") or _first_apply_uri or ""
+        apply_url = _first_apply_uri or None
 
         date_posted = matched.get("PublicationStartDate")
         description = matched.get("QualificationSummary") or matched.get("JobSummary") or ""
@@ -87,11 +85,7 @@ def normalize(raw: dict | list) -> list[JobPosting]:
                     salary = f"{min_pay or '?'}–{max_pay or '?'} {desc}".strip()
 
         job_grades = matched.get("JobGrade") or []
-        tags = [
-            g.get("Code", "")
-            for g in job_grades
-            if isinstance(g, dict) and g.get("Code")
-        ]
+        tags = [g.get("Code", "") for g in job_grades if isinstance(g, dict) and g.get("Code")]
 
         results.append(
             JobPosting(

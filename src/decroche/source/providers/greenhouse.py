@@ -3,6 +3,7 @@
 API:  https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs?content=true
 Docs: https://developers.greenhouse.io/job-board.html
 """
+
 from __future__ import annotations
 
 from typing import Any

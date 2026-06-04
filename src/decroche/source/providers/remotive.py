@@ -3,6 +3,7 @@
 API:  https://remotive.com/api/remote-jobs?search={q}
 Docs: https://remotive.com/api/remote-jobs
 """
+
 from __future__ import annotations
 
 from typing import Any

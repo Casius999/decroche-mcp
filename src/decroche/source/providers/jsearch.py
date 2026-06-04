@@ -5,6 +5,7 @@ Env:  JSEARCH_RAPIDAPI_KEY
 
 Docs: https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch
 """
+
 from __future__ import annotations
 
 from decroche.models import JobPosting

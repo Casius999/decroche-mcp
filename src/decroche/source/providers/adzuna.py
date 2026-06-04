@@ -5,6 +5,7 @@ Env:  ADZUNA_APP_ID, ADZUNA_APP_KEY
 
 Docs: https://developer.adzuna.com/docs/search
 """
+
 from __future__ import annotations
 
 from decroche.models import JobPosting
@@ -29,6 +30,7 @@ async def fetch(query: str, country: str = "fr") -> dict:
             "what": query,
             "results_per_page": 50,
         },
+        provider="adzuna",
     )
 
 

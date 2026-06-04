@@ -3,6 +3,7 @@
 API:  https://{account}.workable.com/spi/v3/jobs
 Docs: https://workable.readme.io/docs/jobs
 """
+
 from __future__ import annotations
 
 from typing import Any

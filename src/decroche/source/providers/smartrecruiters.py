@@ -3,6 +3,7 @@
 API:  https://api.smartrecruiters.com/v1/companies/{company_id}/postings
 Docs: https://developers.smartrecruiters.com/reference/postings-get
 """
+
 from __future__ import annotations
 
 from typing import Any

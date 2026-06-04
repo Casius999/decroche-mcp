@@ -5,6 +5,7 @@ flattening them into a single list of JobPosting objects.  Network failures
 for individual providers are caught and surfaced as warnings — they do not
 abort the entire call.
 """
+
 from __future__ import annotations
 
 import asyncio

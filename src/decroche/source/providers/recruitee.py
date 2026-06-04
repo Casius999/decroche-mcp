@@ -3,6 +3,7 @@
 API:  https://{company}.recruitee.com/api/offers/
 Docs: https://developer.recruitee.com/docs/public-api
 """
+
 from __future__ import annotations
 
 from typing import Any

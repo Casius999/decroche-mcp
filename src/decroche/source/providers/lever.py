@@ -3,6 +3,7 @@
 API:  https://api.lever.co/v0/postings/{company}?mode=json
 Docs: https://hire.lever.co/developer/postings
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -75,6 +76,9 @@ def _epoch_to_iso(ms: Any) -> str | None:
         return None
     try:
         import datetime
-        return datetime.datetime.utcfromtimestamp(int(ms) / 1000).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        return datetime.datetime.fromtimestamp(int(ms) / 1000, tz=datetime.timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
     except Exception:
         return str(ms)

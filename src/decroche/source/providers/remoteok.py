@@ -6,9 +6,11 @@ Docs: https://remoteok.com/api
 Attribution required: "Jobs by RemoteOK.com"
 First element in the array is a legal notice dict (skip it).
 """
+
 from __future__ import annotations
 
 import datetime
+from datetime import timezone
 from typing import Any
 
 from decroche.models import JobPosting
@@ -56,7 +58,7 @@ def normalize(raw: dict | list) -> list[JobPosting]:
         date_posted: str | None = None
         if epoch:
             try:
-                date_posted = datetime.datetime.utcfromtimestamp(int(epoch)).strftime(
+                date_posted = datetime.datetime.fromtimestamp(int(epoch), tz=timezone.utc).strftime(
                     "%Y-%m-%dT%H:%M:%SZ"
                 )
             except Exception:

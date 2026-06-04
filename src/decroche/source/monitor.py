@@ -7,6 +7,7 @@ Tools registered on source_server:
 - monitor_snapshot(provider, key, out_path) → dict
 - monitor_diff(provider, key, prev_path)    → MonitorDiff
 """
+
 from __future__ import annotations
 
 import json
@@ -51,8 +52,7 @@ def _get_provider(provider: str):
 
     if provider not in _registry:
         raise ValueError(
-            f"Unknown monitor provider '{provider}'. "
-            f"Supported: {', '.join(sorted(_registry))}"
+            f"Unknown monitor provider '{provider}'. Supported: {', '.join(sorted(_registry))}"
         )
     return _registry[provider]
 
@@ -69,8 +69,13 @@ async def monitor_snapshot(
 
     Args:
         provider: Provider id (e.g. ``"greenhouse"``).
-        key:      Provider-specific key (board token, company slug, etc.).
-                  Pass ``""`` for providers that take no argument (remoteok, arbeitnow).
+        key:      Provider-specific key whose meaning depends on the provider:
+                  - ``greenhouse`` / ``ashby`` / ``workable``: board token or slug
+                  - ``lever`` / ``recruitee`` / ``smartrecruiters``: company slug
+                  - ``remotive``: **search string** (e.g. ``"python backend"``;
+                    pass ``""`` for all jobs) — must use the same string in
+                    both ``monitor_snapshot`` and ``monitor_diff``
+                  - ``remoteok`` / ``arbeitnow``: ignored (pass ``""``)
         out_path: Absolute path where the JSON snapshot will be written.
 
     Returns:
@@ -115,7 +120,9 @@ async def monitor_diff(
 
     Args:
         provider:  Provider id (e.g. ``"greenhouse"``).
-        key:       Provider-specific key (board token, company slug, etc.).
+        key:       Provider-specific key.  Must match the ``key`` used when
+                   ``monitor_snapshot`` was called so that the same result set
+                   is fetched.  For ``remotive`` this is the search string.
         prev_path: Absolute path to the previously written snapshot JSON.
 
     Returns:

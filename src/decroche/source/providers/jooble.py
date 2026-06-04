@@ -5,6 +5,7 @@ Env:  JOOBLE_KEY
 
 Docs: https://jooble.org/api/about
 """
+
 from __future__ import annotations
 
 from decroche.models import JobPosting
@@ -24,7 +25,7 @@ async def fetch(query: str, location: str = "") -> dict:
     body: dict[str, str] = {"keywords": query}
     if location:
         body["location"] = location
-    return await fetch_json(url, method="POST", json_body=body)
+    return await fetch_json(url, method="POST", json_body=body, provider="jooble")
 
 
 def normalize(raw: dict | list) -> list[JobPosting]:
