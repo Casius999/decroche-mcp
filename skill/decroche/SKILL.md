@@ -62,9 +62,9 @@ Lance en parallèle mental, puis synthétise :
 3. `cv_verify_claims(cv)` → pour chaque affirmation forte, ajoute/sollicite une **preuve** (lien repo/portfolio, rapport, attestation, référence). Inattaquable = **prouvable**.
 
 ### Phase 3 — Anti-algo + anti-scroll (et preuve)
-1. `cv_render(cv, market_id, out_dir)` → **(a)** `.docx` **ATS-safe** + **(b)** HTML « stop-scroll » (+ PDF si dispo) + **(c)** JSON Resume / texte maître.
-2. **Preuve** : `ats_render` round-trip — le rendu relance `ats_parse_sim` sur le `.docx` généré (`ats_safe_proof`). Vérifie parsabilité ↑ et **zéro casse** structurelle.
-3. `ats_score_report(avant, après)` → delta parsabilité / red flags / readiness. Montre le gain.
+1. `cv_render(cv, market_id, out_dir)` → **(a)** `.docx` **ATS-safe** + **(b)** HTML « stop-scroll » localisé (+ PDF si dispo) + **(c)** JSON Resume / texte maître.
+2. **Preuve ATS** : `cv_render` retourne `ats_safe_proof: dict[ats_id → parsability_score]` — scores du round-trip `ats_parse_sim` sur le `.docx` généré, intégrés dans le `Render` renvoyé. Vérifie parsabilité ↑ et **zéro casse** structurelle (pas d'outil séparé `ats_render`).
+3. `ats_score_report(cv, offer_text, ats_id)` → `ScoreReport` avec `parsability` (0-100), `match` (0-100 si offre fournie), `screener_readiness` ∈ **low | medium | high**, `redflag_count`, et `delta` (si avant/après demandé). Montre le gain.
 4. Re-joue le screener LLM (Phase 1) sur le nouveau `machine_view_text` → confirme l'amélioration.
 
 **Livrable final** : 2 fichiers (ATS-safe + humain), le rapport avant/après, et la liste des preuves à fournir.

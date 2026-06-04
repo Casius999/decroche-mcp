@@ -38,6 +38,9 @@ testpaths = ["tests"]
 [tool.coverage.run]
 source = ["src/decroche"]
 
+[tool.coverage.report]
+fail_under = 80
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
