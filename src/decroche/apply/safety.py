@@ -37,14 +37,32 @@ import re
 # FR + EN, intentionally broad: refusing a safe field is benign;
 # typing into a credential/card field is a hard violation.
 _SENSITIVE_FIELD_RE = re.compile(
-    r"password|mot.?de.?passe|\bpass\b|\bpwd\b"
+    # Passwords
+    r"password|mot.?de.?passe|\bpass\b|\bpwd\b|newPwd|userPassword|confirmPassword|passphrase"
+    # Card numbers / PAN
     r"|card|carte|\bcb\b|card.?number|num[eé]ro.*carte"
-    r"|\bcvc\b|\bcvv\b|\bcvx\b|\bcsc\b"
-    r"|iban|\brib\b"
+    r"|cc.?num(ber)?|ccnumber|cc.?number|\bpan\b|primaryAccountNumber"
+    # CVC / CVV variants including digit suffix (cvv2, cvc2, ccv, ccv2, cid)
+    r"|\bcvv\d?\b|\bcvc\d?\b|\bccv\d?\b|\bcid\b|\bcvx\b|\bcsc\b"
+    r"|card.?code|security.?code|cryptogramme|code.?de.?s[eé]curit[eé]|code.?secret|code.?confidentiel"
+    # Bank / account numbers
+    r"|iban|\brib\b|\bsepa\b|\bbic\b|\bswift\b"
+    r"|account.?number|num[eé]ro.?compte|bank.?account|sort.?code|routing.?number"
+    r"|numero_compte"
+    # SSN / national ID / tax
     r"|ssn|social.?security|num[eé]ro.*s[eé]curit[eé]|num[eé]ro.?s[eé]cu|n[oO].*s[eé]cu"
-    r"|secu\b|s[eé]curit[eé].?sociale"
-    r"|\botp\b|one.?time.?pass"
+    r"|secu\b|s[eé]curit[eé].?sociale|\bnir\b|national.?id|tax.?id|num[eé]ro.?fiscal"
+    r"|national_id|tax_id|numero_fiscal"
+    # Passport
+    r"|passport(number|_number)?"
+    # OTP / 2FA / MFA / TOTP
+    r"|\botp\b|one.?time.?(pass|code)|code.?unique|\btotp\b|\bmfa\b|mfa.?code|passcode"
     r"|2fa|two.?factor|auth.?code|verification.?code"
+    # Date of birth
+    r"|date.?of.?birth|date.?naissance|\bdob\b|birth.?date|\bbday\b|naissance"
+    # PIN
+    r"|\bpin\b"
+    # Crypto
     r"|crypto|seed.?phrase|mnemonic",
     re.IGNORECASE,
 )
@@ -80,7 +98,9 @@ def classify_sensitive_field(name: str, label: str = "") -> bool:
 
 _PAYMENT_URL_RE = re.compile(
     r"payment|paiement|checkout|stripe\.com|adyen\.com|paypal\.com"
-    r"|billing|/pay(?:[/?#]|$)",
+    r"|billing|/pay(?:[/?#]|$)"
+    r"|subscribe|subscription|abonnement|/order(?:[/?#]|$)|/cart(?:[/?#]|$)|panier"
+    r"|upgrade|purchase|/buy(?:[/?#]|$)|premium|payer|r[eé]gler",
     re.IGNORECASE,
 )
 
@@ -111,7 +131,8 @@ _LOGIN_FIELD_RE = re.compile(
 )
 
 _LOGIN_URL_RE = re.compile(
-    r"login|signin|sign.in|connexion|/auth(?:[/?#]|$)",
+    r"login|signin|sign.in|connexion|/auth(?:[/?#]|$)"
+    r"|sso|oauth|identity|identifier|se.?connecter|authenticate|log.?in|signon|/account(?:[/?#]|$)",
     re.IGNORECASE,
 )
 

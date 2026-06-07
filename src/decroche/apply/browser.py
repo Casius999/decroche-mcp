@@ -36,11 +36,13 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
 from fastmcp.exceptions import ToolError
 
+from decroche.apply import prefill as _prefill_mod
 from decroche.apply.queue import queue_mark_sent
 from decroche.apply.safety import (
     classify_sensitive_field,
@@ -49,6 +51,15 @@ from decroche.apply.safety import (
     should_block_step,
 )
 from decroche.models import ActPreview, SendResult
+
+# ---------------------------------------------------------------------------
+# I4 — click-target blocklist (pay/subscribe/checkout patterns)
+# ---------------------------------------------------------------------------
+
+_CLICK_BLOCK_RE = re.compile(
+    r"\bpay\b|subscribe|checkout|confirm.?(payment|order)|r[eé]gler|abonn",
+    re.IGNORECASE,
+)
 
 # ---------------------------------------------------------------------------
 # Optional Playwright import — guarded so core tests pass without it.
@@ -142,6 +153,27 @@ async def act(
         reason = (
             f"REFUSED: sensitive field {target_field!r} (label={label!r}) must not be auto-filled"
         )
+
+    # Defense-in-depth: also block fill if field name appears in _SENSITIVE_FIELDS registry.
+    if not blocked and intent == "fill" and target_field:
+        if target_field in _prefill_mod._SENSITIVE_FIELDS:
+            blocked = True
+            reason = f"REFUSED: field {target_field!r} is in the sensitive registry"
+
+    # I4 — block click on pay/subscribe/checkout targets.
+    if not blocked and intent == "click":
+        click_text = " ".join(
+            str(v)
+            for v in [
+                params.get("selector", ""),
+                params.get("name", ""),
+                params.get("role", ""),
+            ]
+            if v
+        )
+        if _CLICK_BLOCK_RE.search(click_text):
+            blocked = True
+            reason = f"REFUSED: click target matches payment/subscribe pattern — {click_text!r}"
 
     if blocked:
         return ActPreview(
@@ -336,7 +368,7 @@ async def send_approved(
         except ToolError as exc:
             stopped.append({"job_id": job_id, "reason": str(exc)})
         except Exception as exc:  # noqa: BLE001
-            stopped.append({"job_id": job_id, "reason": f"unexpected error: {exc}"})
+            stopped.append({"job_id": job_id, "reason": f"unexpected error: {type(exc).__name__}"})
 
     return SendResult(
         attempted=len(approved),
@@ -345,6 +377,19 @@ async def send_approved(
         stopped=stopped,
         dry_run=not confirm_send,
     )
+
+
+async def _get_form_input_names(page: Any) -> list[str]:
+    """Return the ``name`` attributes of all <input> elements on *page*.
+
+    Used by _submit_item to scan for sensitive fields before clicking submit.
+    Extracted as a separate coroutine so tests can replace it with a stub.
+    """
+    names: list[str] = await page.eval_on_selector_all(
+        "input",
+        "els => els.map(e => e.name || '').filter(n => n !== '')",
+    )
+    return names
 
 
 async def _submit_item(
@@ -367,13 +412,27 @@ async def _submit_item(
             current_url = page.url
             if is_payment_url(current_url):
                 raise ToolError(f"STOP: redirected to payment URL — {current_url!r}")
-            if is_login_context(url=current_url):
+
+            # I2 — login detection: check URL AND DOM field names
+            page_input_names = await _get_form_input_names(page)
+            if is_login_context(field_names=page_input_names, url=current_url):
                 raise ToolError("needs_manual_login after navigation")
+
+            # I1 — pre-submit sensitive field scan: if ANY form input is sensitive → stop
+            sensitive_on_form = [n for n in page_input_names if classify_sensitive_field(n)]
+            if sensitive_on_form:
+                raise ToolError(
+                    f"STOP: form contains sensitive field(s) {sensitive_on_form!r} — not submitting"
+                )
 
             # Fill non-sensitive fields
             for field_name, value in fields.items():
-                if classify_sensitive_field(field_name):
-                    continue  # Already guarded above but double-check
+                # Defense-in-depth: skip if sensitive by name OR in registry
+                if (
+                    classify_sensitive_field(field_name)
+                    or field_name in _prefill_mod._SENSITIVE_FIELDS
+                ):
+                    continue
                 locator = page.locator(f'[name="{field_name}"]')
                 if await locator.count() > 0:
                     await locator.first.fill(value)
