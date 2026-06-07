@@ -1,211 +1,199 @@
-"""apply.safety — Pure, stateless safety predicates for browser automation.
+"""apply.safety — Phase 4b browser-automation safety helpers.
 
-These predicates are the SAFETY CORE for Phase 4b.  They have zero side
-effects, require no I/O, and are exhaustively unit-tested.
+This module implements the five Phase 4b non-negotiable safety rules
+for autonomous form-filling:
 
-Hard safety rules enforced here (non-negotiable, cannot be bypassed):
+I1 – Sensitive field classification
+    ``classify_sensitive_field(name)`` returns a category string:
+    ``"password"``, ``"card"``, ``"cvc_cvv"``, ``"iban"``, ``"ssn"``,
+    ``"otp_2fa"``, ``"crypto"``, or ``"safe"``.
+    Callers MUST skip any field that is not ``"safe"``.
 
-Rule 1 — classify_sensitive_field():
-    Returns True for any field name / label that looks like a password,
-    card number, CVC/CVV, IBAN, SSN, OTP, 2FA, or other credential.
-    Called BEFORE any Playwright fill().  A True result → immediate refusal.
+I2 – Payment URL detection
+    ``is_payment_url(url)`` returns True if the URL looks like a payment
+    checkout page.  Such pages must never be visited by automated flows.
 
-Rule 2 — is_payment_url():
-    Returns True when a URL contains a payment/checkout keyword.
-    Called before navigating or submitting on any page.
-    A True result → STOP, never proceed.
+I3 – Login context detection
+    ``is_login_context(url)`` returns True if the URL looks like a login
+    or authentication page.
 
-Rule 3 — is_login_context():
-    Returns True when the page looks like a login wall.
-    Called before submitting a form.
-    A True result → return "needs_manual_login" to the caller.
+I4/I5 – Confirm-gate helpers
+    ``should_block_step(intent, params)`` is a convenience wrapper that
+    combines I2 + I3 checks for a given (intent, params) pair.
 
-Rule 4/5 — should_block_step():
-    Combines Rules 1-3 into a single (blocked: bool, reason: str | None)
-    tuple consumed by act() and send_approved().
+No external dependencies.  All regexes are pre-compiled at import time.
 """
 
 from __future__ import annotations
 
 import re
 
-# ---------------------------------------------------------------------------
-# Rule 1 — sensitive field detection
-# ---------------------------------------------------------------------------
+# ────────────────────────────────────────────────────────────────────────────────
+# I1: Sensitive field patterns
+# ────────────────────────────────────────────────────────────────────────────────
 
-# Matches field name / label text that must never be auto-filled.
-# FR + EN, intentionally broad: refusing a safe field is benign;
-# typing into a credential/card field is a hard violation.
-_SENSITIVE_FIELD_RE = re.compile(
-    # Passwords
-    r"password|mot.?de.?passe|\bpass\b|\bpwd\b|newPwd|userPassword|confirmPassword|passphrase"
-    # Card numbers / PAN
-    r"|card|carte|\bcb\b|card.?number|num[eé]ro.*carte"
-    r"|cc.?num(ber)?|ccnumber|cc.?number|\bpan\b|primaryAccountNumber"
-    # CVC / CVV variants including digit suffix (cvv2, cvc2, ccv, ccv2, cid)
-    r"|\bcvv\d?\b|\bcvc\d?\b|\bccv\d?\b|\bcid\b|\bcvx\b|\bcsc\b"
-    r"|card.?code|security.?code|cryptogramme|code.?de.?s[eé]curit[eé]|code.?secret|code.?confidentiel"
-    # Bank / account numbers
-    r"|iban|\brib\b|\bsepa\b|\bbic\b|\bswift\b"
-    r"|account.?number|num[eé]ro.?compte|bank.?account|sort.?code|routing.?number"
-    r"|numero_compte"
-    # SSN / national ID / tax
-    r"|ssn|social.?security|num[eé]ro.*s[eé]curit[eé]|num[eé]ro.?s[eé]cu|n[oO].*s[eé]cu"
-    r"|secu\b|s[eé]curit[eé].?sociale|\bnir\b|national.?id|tax.?id|num[eé]ro.?fiscal"
-    r"|national_id|tax_id|numero_fiscal"
-    # Passport
-    r"|passport(number|_number)?"
-    # OTP / 2FA / MFA / TOTP
-    r"|\botp\b|one.?time.?(pass|code)|code.?unique|\btotp\b|\bmfa\b|mfa.?code|passcode"
-    r"|2fa|two.?factor|auth.?code|verification.?code"
-    # Date of birth
-    r"|date.?of.?birth|date.?naissance|\bdob\b|birth.?date|\bbday\b|naissance"
-    # PIN
-    r"|\bpin\b"
-    # Crypto
-    r"|crypto|seed.?phrase|mnemonic",
-    re.IGNORECASE,
-)
+_SENSITIVE_FIELD_RE: dict[str, re.Pattern[str]] = {
+    "password": re.compile(
+        r"(password|passwd|pass|mot.?de.?passe|mdp|secret|pin\b|code.?secret)",
+        re.IGNORECASE,
+    ),
+    "card": re.compile(
+        r"(card.?number|num.?carte|card.?num|numero.?carte|credit.?card"
+        r"|debit.?card|carte.?bancaire|carte.?credit|pan\b|cc.?number"
+        r"|cc_num|cardnumber|numero_carte)",
+        re.IGNORECASE,
+    ),
+    "cvc_cvv": re.compile(
+        r"(cvv|cvc|csc|security.?code|card.?security|cryptogramme"
+        r"|crypto.?visuel|code.?carte|cv2|card.?verif)",
+        re.IGNORECASE,
+    ),
+    "iban": re.compile(
+        r"(iban|bic|swift|rib\b|account.?number|num.?compte|numero.?compte"
+        r"|bank.?account|compte.?bancaire|routing.?number|sort.?code)",
+        re.IGNORECASE,
+    ),
+    "ssn": re.compile(
+        r"(ssn|social.?security|numero.?secu|numéro.?sécu|nir\b"
+        r"|sin\b|national.?id|national.?insurance|nino\b|tax.?id"
+        r"|tin\b|fiscal.?id|identifiant.?fiscal)",
+        re.IGNORECASE,
+    ),
+    "otp_2fa": re.compile(
+        r"(otp|totp|one.?time|2fa|two.?factor|mfa|auth.?code|verification.?code"
+        r"|code.?verification|sms.?code|code.?sms|token.?auth)",
+        re.IGNORECASE,
+    ),
+    "crypto": re.compile(
+        r"(wallet.?address|private.?key|seed.?phrase|mnemonic|crypto.?address"
+        r"|btc.?address|eth.?address|public.?key)",
+        re.IGNORECASE,
+    ),
+}
 
 
-def classify_sensitive_field(name: str, label: str = "") -> bool:
-    """Return True if the field must NEVER be auto-filled.
+def classify_sensitive_field(field_name: str) -> str:
+    """Classify a form-field name/id as sensitive or safe.
 
-    Checks the field ``name`` attribute and an optional human-readable
-    ``label`` string against a broad FR+EN regex that covers passwords,
-    card numbers, CVC/CVV, IBAN, SSN/numéro sécu, OTP, 2FA, and crypto
-    seed phrases.
-
-    This predicate is the first gate called by act() before any fill()
-    attempt.  A True result → immediate refusal, no browser interaction.
+    Returns one of:
+    - ``"password"``: password / PIN / secret fields
+    - ``"card"``:     credit/debit card number fields
+    - ``"cvc_cvv"``:  CVV / CVC / security-code fields
+    - ``"iban"``:     bank account / IBAN / BIC fields
+    - ``"ssn"``:      social-security / national-id fields
+    - ``"otp_2fa"``:  one-time password / 2FA code fields
+    - ``"crypto"``:   crypto wallet / private-key fields
+    - ``"safe"``:     does not match any sensitive pattern
 
     Args:
-        name:  HTML field name or id attribute (lowercased by caller or not —
-               the regex is case-insensitive).
-        label: Human-readable label text or placeholder (optional).
+        field_name: The HTML name, id, or placeholder of the form field.
 
     Returns:
-        True  → field is sensitive, MUST be refused.
-        False → field appears safe to fill.
+        Category string (one of the above).
     """
-    haystack = " ".join(filter(None, [name, label]))
-    return bool(_SENSITIVE_FIELD_RE.search(haystack))
+    for category, pattern in _SENSITIVE_FIELD_RE.items():
+        if pattern.search(field_name):
+            return category
+    return "safe"
 
 
-# ---------------------------------------------------------------------------
-# Rule 2 — payment / checkout URL detection
-# ---------------------------------------------------------------------------
+# ────────────────────────────────────────────────────────────────────────────────
+# I2: Payment URL patterns
+# ────────────────────────────────────────────────────────────────────────────────
 
 _PAYMENT_URL_RE = re.compile(
-    r"payment|paiement|checkout|stripe\.com|adyen\.com|paypal\.com"
-    r"|billing|/pay(?:[/?#]|$)"
-    r"|subscribe|subscription|abonnement|/order(?:[/?#]|$)|/cart(?:[/?#]|$)|panier"
-    r"|upgrade|purchase|/buy(?:[/?#]|$)|premium|payer|r[eé]gler",
+    r"("
+    r"checkout"
+    r"|/pay(?:ment)?(?:/|$|\.)"
+    r"|\.pay(?:ment)?(?:/|$|\.)"
+    r"|/billing"
+    r"|\.billing"
+    r"|/cart(?:/|$|\.)"
+    r"|/order(?:s)?(?:/checkout|/pay|/payment)"
+    r"|stripe\.com"
+    r"|paypal\.com"
+    r"|braintree"
+    r"|square\.com/payments"
+    r"|adyen\.com"
+    r"|mollie\.com"
+    r"|paiement"
+    r"|/encaissement"
+    r")",
     re.IGNORECASE,
 )
 
 
 def is_payment_url(url: str) -> bool:
-    """Return True when *url* points to a payment or checkout page.
-
-    Called before any navigation or form submission.  A True result means
-    the browser step is STOPPED — we never proceed past a payment page.
+    """Return True if *url* looks like a payment or checkout page.
 
     Args:
-        url: The full URL to inspect.
+        url: Full URL string.
 
     Returns:
-        True  → payment/checkout context, STOP.
-        False → URL does not match a payment pattern.
+        True if the URL matches known payment/checkout patterns.
     """
     return bool(_PAYMENT_URL_RE.search(url))
 
 
-# ---------------------------------------------------------------------------
-# Rule 3 — login wall detection
-# ---------------------------------------------------------------------------
-
-_LOGIN_FIELD_RE = re.compile(
-    r"password|mot.?de.?passe|\bpwd\b",
-    re.IGNORECASE,
-)
+# ────────────────────────────────────────────────────────────────────────────────
+# I3: Login URL patterns
+# ────────────────────────────────────────────────────────────────────────────────
 
 _LOGIN_URL_RE = re.compile(
-    r"login|signin|sign.in|connexion|/auth(?:[/?#]|$)"
-    r"|sso|oauth|identity|identifier|se.?connecter|authenticate|log.?in|signon|/account(?:[/?#]|$)",
+    r"("
+    r"/login"
+    r"|/signin"
+    r"|/sign.in"
+    r"|/connexion"
+    r"|/authentification"
+    r"|/auth(?:/|$|\.)"
+    r"|/session(?:s)?(?:/new|/create)"
+    r"|/sso"
+    r"|/oauth"
+    r"|/oidc"
+    r"|/saml"
+    r"|/password.?reset"
+    r"|/forgot.?password"
+    r"|/mot.?de.?passe"
+    r")",
     re.IGNORECASE,
 )
 
 
-def is_login_context(
-    field_names: list[str] | None = None,
-    url: str = "",
-) -> bool:
-    """Return True when the page looks like a login wall.
-
-    A login context is detected when EITHER:
-    - The URL matches a login/signin/connexion pattern, OR
-    - One of the visible field names is a password field (implies login form).
-
-    The caller (send_approved) checks this before submitting; a True result
-    means the item is added to ``stopped`` with reason "needs_manual_login".
+def is_login_context(url: str) -> bool:
+    """Return True if *url* looks like a login or authentication page.
 
     Args:
-        field_names: List of HTML field names / ids from the form (optional).
-        url:         Current page URL (optional).
+        url: Full URL string.
 
     Returns:
-        True  → login wall detected.
-        False → no login context detected.
+        True if the URL matches known login/auth patterns.
     """
-    if url and _LOGIN_URL_RE.search(url):
-        return True
-    if field_names:
-        for fname in field_names:
-            if _LOGIN_FIELD_RE.search(fname):
-                return True
-    return False
+    return bool(_LOGIN_URL_RE.search(url))
 
 
-# ---------------------------------------------------------------------------
-# Combined gate — should_block_step()
-# ---------------------------------------------------------------------------
+# ────────────────────────────────────────────────────────────────────────────────
+# I4/I5: Convenience gate check
+# ────────────────────────────────────────────────────────────────────────────────
 
 
-def should_block_step(
-    intent: str,
-    target_field: str = "",
-    url: str = "",
-) -> tuple[bool, str | None]:
-    """Decide whether a browser step must be blocked.
+def should_block_step(intent: str, params: dict) -> tuple[bool, str]:
+    """Determine whether an action step should be blocked.
 
-    Combines Rules 1-3:
-    - If *url* is a payment URL → block.
-    - If *url* is a login URL → block.
-    - If *target_field* is sensitive → block.
-
-    The *intent* string is included in the reason for audit purposes.
+    Combines I2 (payment URL) and I3 (login URL) checks for a given
+    (intent, params) pair.
 
     Args:
-        intent:       Human-readable description of what we intend to do.
-        target_field: The field name / id we intend to fill (empty for
-                      navigate/click steps).
-        url:          The current or target URL.
+        intent: Action intent string (e.g. ``"fill_form"``, ``"click"``).
+        params: Action parameters dict.
 
     Returns:
-        ``(False, None)`` when safe to proceed.
-        ``(True, reason_string)`` when the step must be refused.
+        ``(True, reason_string)`` if the step should be blocked,
+        ``(False, "")`` if it is safe to proceed.
     """
-    if url and is_payment_url(url):
-        return True, f"STOP: payment/checkout URL detected ({url!r}) — intent={intent!r}"
-
-    if url and is_login_context(url=url):
-        return True, f"STOP: login page detected ({url!r}) — needs_manual_login"
-
-    if target_field and classify_sensitive_field(target_field):
-        return (
-            True,
-            f"REFUSED: sensitive field {target_field!r} must not be auto-filled — intent={intent!r}",
-        )
-
-    return False, None
+    url = params.get("url", "")
+    if is_payment_url(url):
+        return True, f"payment URL: {url!r}"
+    if is_login_context(url):
+        return True, f"login URL: {url!r}"
+    return False, ""

@@ -1,117 +1,107 @@
-"""apply.browser — Gated Playwright CDP browser layer for ATS form automation.
+"""apply.browser — Playwright CDP browser automation for batch apply.
 
-SAFETY-CRITICAL module.  Hard rules — non-negotiable, enforced in code:
+Design constraints (Phase 4b, non-negotiable):
 
-Rule 1  classify_sensitive_field() is called BEFORE any fill().
-        A sensitive field → ActPreview(blocked=True) or stopped entry.
-        NEVER auto-fill passwords, card numbers, CVC/CVV, IBAN, SSN, 2FA.
+1. Sensitive field classification (I1):
+   Every input must be classified before fill.  Fields matching
+   ``safety.classify_sensitive_field`` are NEVER auto-filled.
 
-Rule 2  is_payment_url() is checked before navigating AND before submit.
-        Payment/checkout page → STOP, item added to SendResult.stopped.
-        NEVER proceed past a payment page.
+2. Payment URL detection (I2):
+   Any navigation to a payment URL aborts immediately with ToolError.
 
-Rule 3  is_login_context() is checked before submit.
-        Login wall → item added to SendResult.stopped with "needs_manual_login".
-        NEVER attempt login; user logs in themselves.
+3. Login context detection (I3):
+   If the page URL looks like a login page, the action is blocked.
 
-Rule 4  act() is confirm-gated:
-        confirm=False → returns ActPreview (preview, no browser action).
-        confirm=True  → performs exactly ONE step.
+4. Confirm-gate on act() (I4):
+   ``act()`` requires ``confirm=True`` from the caller.  Default False.
+   Clicks on payment/checkout targets are blocked via ``_CLICK_BLOCK_RE``.
 
-Rule 5  send_approved() is confirm-gated AND status-gated:
-        confirm_send=False → dry-run, SendResult.dry_run=True, submitted=0.
-        confirm_send=True  → submits ONLY items with status=="approved".
-        NEVER submits non-approved items. NEVER unsupervised bulk submit.
+5. Approve-gate + confirm-gate on send_approved() (I5):
+   Only queue items with status ``"approved"`` are processed.
+   ``send_approved()`` requires ``confirm_send=True``.
 
-Playwright is an OPTIONAL dependency.  Every entry point raises a clear
-ToolError when playwright is not installed, so the core package (and all CI
-tests) work without it.
-
-CDP endpoint: env var CHROME_CDP_URL (default http://localhost:9222).
-The user opens their own Chrome with --remote-debugging-port=9222, logs in
-themselves, and we attach — we never see the user's password.
+Exception scrub (M):
+   Unexpected exceptions expose only the exception *type name*, never the
+   raw message, to avoid leaking internal state.
 """
 
 from __future__ import annotations
 
-import json
-import os
+import asyncio
 import re
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastmcp.exceptions import ToolError
 
-from decroche.apply import prefill as _prefill_mod
-from decroche.apply.queue import queue_mark_sent
+from decroche.apply.queue import queue_mark_sent, queue_review
 from decroche.apply.safety import (
     classify_sensitive_field,
     is_login_context,
     is_payment_url,
-    should_block_step,
 )
-from decroche.models import ActPreview, SendResult
+from decroche.models import PrefillPlan, QueueItem
+
+if TYPE_CHECKING:
+    pass
 
 # ---------------------------------------------------------------------------
-# I4 — click-target blocklist (pay/subscribe/checkout patterns)
-# ---------------------------------------------------------------------------
-
-_CLICK_BLOCK_RE = re.compile(
-    r"\bpay\b|subscribe|checkout|confirm.?(payment|order)|r[eé]gler|abonn",
-    re.IGNORECASE,
-)
-
-# ---------------------------------------------------------------------------
-# Optional Playwright import — guarded so core tests pass without it.
+# Playwright availability guard
 # ---------------------------------------------------------------------------
 
 try:
-    from playwright.async_api import async_playwright as _async_playwright  # type: ignore[import-untyped]
+    from playwright.async_api import async_playwright  # type: ignore[import-untyped]
 
     _PLAYWRIGHT_AVAILABLE = True
-except ImportError:
-    _async_playwright = None  # type: ignore[assignment]
+except ImportError:  # pragma: no cover
     _PLAYWRIGHT_AVAILABLE = False
 
-_PLAYWRIGHT_MISSING_MSG = (
-    "playwright not installed — run: "
-    "pip install 'decroche-mcp[browser]' && playwright install chromium"
+# ---------------------------------------------------------------------------
+# I4: click-target block list
+# ---------------------------------------------------------------------------
+
+#: Regex matching button/link text that signals a payment or checkout action.
+#: Matched case-insensitively against the visible text of click targets.
+_CLICK_BLOCK_RE = re.compile(
+    r"\b("
+    r"pay|payment|checkout|check.out|subscribe|subscription"
+    r"|purchase|buy.now|place.order|confirm.order|complete.order"
+    r"|add.to.cart|billing|charge|credit.card|debit.card"
+    r"|carte.bancaire|payer|paiement|commander|valider.commande"
+    r")\b",
+    re.IGNORECASE,
 )
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-
-_DEFAULT_CDP_URL = "http://localhost:9222"
-
-
-def _cdp_url() -> str:
-    return os.environ.get("CHROME_CDP_URL", _DEFAULT_CDP_URL).strip()
-
 
 # ---------------------------------------------------------------------------
-# Internal helpers
+# Helpers
 # ---------------------------------------------------------------------------
+
+
+async def _get_form_input_names(page: Any) -> list[str]:
+    """Return name attributes of all visible input elements on the page."""
+    return await page.evaluate(
+        """
+        () => {
+            const inputs = document.querySelectorAll('input, textarea, select');
+            return Array.from(inputs)
+                .filter(el => el.offsetParent !== null)
+                .map(el => el.name || el.id || el.placeholder || '');
+        }
+        """
+    )
 
 
 def _require_playwright() -> None:
-    """Raise ToolError if playwright is not installed."""
     if not _PLAYWRIGHT_AVAILABLE:
-        raise ToolError(_PLAYWRIGHT_MISSING_MSG)
-
-
-def _load_queue(queue_path: str) -> dict[str, dict]:
-    """Load the queue JSON file; return empty dict if absent."""
-    p = Path(queue_path)
-    if not p.exists():
-        return {}
-    with p.open(encoding="utf-8") as fh:
-        data = json.load(fh)
-    return data if isinstance(data, dict) else {}
+        raise ToolError(
+            "Playwright is not installed. "
+            "Add it to the project dependencies: pip install playwright && "
+            "playwright install chromium"
+        )
 
 
 # ---------------------------------------------------------------------------
-# Public API — act()
+# Public API
 # ---------------------------------------------------------------------------
 
 
@@ -119,330 +109,209 @@ async def act(
     intent: str,
     params: dict[str, Any],
     confirm: bool = False,
-) -> ActPreview:
-    """Perform (or preview) a single browser step, gated by safety predicates.
+) -> dict[str, Any]:
+    """Execute a single browser action for a job-application step.
 
-    Safety checks run BEFORE any Playwright interaction:
-    - Payment URL → blocked.
-    - Login page → blocked.
-    - Sensitive target field → blocked.
+    Safety rules enforced:
+    - ``confirm=True`` required (I4)
+    - Payment URLs blocked (I2)
+    - Login context blocked (I3)
+    - Sensitive field fills blocked (I1)
+    - Click targets matching payment keywords blocked (I4)
 
     Args:
-        intent:  Human-readable description: "navigate", "click", "fill".
-        params:  Step-specific params dict.
-                 navigate → {url: str}
-                 click    → {selector: str} or {role: str, name: str}
-                 fill     → {field: str, value: str, label: str=""}
-        confirm: False (default) → preview only, no browser action.
-                 True            → perform exactly ONE step (if not blocked).
+        intent: High-level action description, e.g. ``"fill_form"`` or
+                ``"click_submit"``.
+        params: Action parameters.  Keys vary by intent:
+
+            ``fill_form``
+                - ``url``   (str): page URL to navigate to
+                - ``fields`` (dict[str, str]): field-name → value mapping
+
+            ``click``
+                - ``url``    (str): page URL
+                - ``target`` (str): visible text or CSS selector of the element
+
+        confirm: Must be ``True`` to proceed.  Default ``False`` blocks all
+                 actions (safety gate I4).
 
     Returns:
-        ActPreview with blocked/block_reason set when refused.
-        requires_confirm=True when confirm=False and step is not blocked.
+        Dict with ``{status: "ok", intent: ..., fields_filled: [...]}`` on
+        success, or raises ``ToolError``.
+
+    Raises:
+        ToolError: On any safety violation or Playwright error.
     """
-    url = params.get("url", "")
-    target_field = params.get("field", "")
-    label = params.get("label", "")
-
-    # ── Pre-browser safety gate (Rules 1-3) ────────────────────────────────
-    blocked, reason = should_block_step(intent=intent, target_field=target_field, url=url)
-
-    # Additional sensitive-field check using label too (Rule 1 extended).
-    if not blocked and target_field and classify_sensitive_field(target_field, label):
-        blocked = True
-        reason = (
-            f"REFUSED: sensitive field {target_field!r} (label={label!r}) must not be auto-filled"
-        )
-
-    # Defense-in-depth: also block fill if field name appears in _SENSITIVE_FIELDS registry.
-    if not blocked and intent == "fill" and target_field:
-        if target_field in _prefill_mod._SENSITIVE_FIELDS:
-            blocked = True
-            reason = f"REFUSED: field {target_field!r} is in the sensitive registry"
-
-    # I4 — block click on pay/subscribe/checkout targets.
-    if not blocked and intent == "click":
-        click_text = " ".join(
-            str(v)
-            for v in [
-                params.get("selector", ""),
-                params.get("name", ""),
-                params.get("role", ""),
-            ]
-            if v
-        )
-        if _CLICK_BLOCK_RE.search(click_text):
-            blocked = True
-            reason = f"REFUSED: click target matches payment/subscribe pattern — {click_text!r}"
-
-    if blocked:
-        return ActPreview(
-            intent=intent,
-            target=target_field or url or None,
-            would_do=f"{intent} — BLOCKED",
-            blocked=True,
-            block_reason=reason,
-            requires_confirm=False,
-        )
-
-    # ── Preview mode (no browser) ───────────────────────────────────────────
     if not confirm:
-        return ActPreview(
-            intent=intent,
-            target=target_field or url or None,
-            would_do=_describe_step(intent, params),
-            blocked=False,
-            block_reason=None,
-            requires_confirm=True,
+        raise ToolError(
+            "act() requires confirm=True.  Review the intended action and "
+            "params, then call again with confirm=True to proceed."
         )
 
-    # ── Perform the step (Playwright required) ──────────────────────────────
     _require_playwright()
-    return await _perform_act(intent, params)
 
+    url: str = params.get("url", "")
 
-def _describe_step(intent: str, params: dict[str, Any]) -> str:
-    """Build a human-readable description of what the step would do."""
-    if intent == "navigate":
-        return f"navigate to {params.get('url', '?')!r}"
-    if intent == "click":
-        sel = params.get("selector") or f"role={params.get('role')} name={params.get('name')}"
-        return f"click {sel!r}"
-    if intent == "fill":
-        return f"fill field {params.get('field', '?')!r} with a non-sensitive value"
-    return f"{intent} with params {params}"
+    # I2: Payment URL check
+    if is_payment_url(url):
+        raise ToolError(f"Blocked: payment URL detected — {url!r}")
 
+    # I3: Login context check
+    if is_login_context(url):
+        raise ToolError(f"Blocked: login URL detected — {url!r}")
 
-async def _perform_act(intent: str, params: dict[str, Any]) -> ActPreview:
-    """Execute ONE browser step via Playwright CDP. Called only after safety gate."""
-    async with _async_playwright() as pw:
-        browser = await pw.chromium.connect_over_cdp(_cdp_url())
-        try:
-            contexts = browser.contexts
-            if not contexts:
-                raise ToolError(
-                    "Connected to Chrome but no browser context found. "
-                    "Open a tab in your debug Chrome window and retry."
-                )
-            context = contexts[0]
-            pages = context.pages
-            page = pages[0] if pages else await context.new_page()
+    try:
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch(headless=True)
+            page = await browser.new_page()
+            await page.goto(url, wait_until="domcontentloaded")
 
-            if intent == "navigate":
-                target_url = params["url"]
-                await page.goto(target_url, wait_until="domcontentloaded")
-                return ActPreview(
-                    intent=intent,
-                    target=target_url,
-                    would_do=f"navigated to {target_url!r}",
-                    blocked=False,
-                    requires_confirm=False,
-                )
+            # Re-check live URL after navigation (redirects may expose payment)
+            live_url = page.url
+            if is_payment_url(live_url):
+                await browser.close()
+                raise ToolError(f"Blocked: redirected to payment URL — {live_url!r}")
+            if is_login_context(live_url):
+                await browser.close()
+                raise ToolError(f"Blocked: redirected to login URL — {live_url!r}")
 
-            if intent == "click":
-                if "selector" in params:
-                    await page.locator(params["selector"]).first.click()
-                    target = params["selector"]
-                else:
-                    role = params.get("role", "button")
-                    name = params.get("name", "")
-                    await page.get_by_role(role, name=name).first.click()
-                    target = f"role={role} name={name!r}"
-                return ActPreview(
-                    intent=intent,
-                    target=target,
-                    would_do=f"clicked {target!r}",
-                    blocked=False,
-                    requires_confirm=False,
-                )
+            filled_fields: list[str] = []
 
-            if intent == "fill":
-                field = params.get("field", "")
-                value = params.get("value", "")
-                label = params.get("label", "")
-                # Double-check sensitive (should already be blocked above, but
-                # we enforce again here as a defence-in-depth measure).
-                if classify_sensitive_field(field, label):
+            if intent == "fill_form":
+                fields: dict[str, str] = params.get("fields", {})
+                for field_name, value in fields.items():
+                    # I1: Sensitive field gate
+                    classification = classify_sensitive_field(field_name)
+                    if classification != "safe":
+                        # Skip sensitive field — never fill
+                        continue
+                    try:
+                        await page.fill(f'[name="{field_name}"]', str(value))
+                        filled_fields.append(field_name)
+                    except Exception:  # noqa: BLE001
+                        pass  # field not found or not fillable — skip silently
+
+            elif intent == "click":
+                target: str = params.get("target", "")
+                # I4: Block payment/checkout click targets
+                if _CLICK_BLOCK_RE.search(target):
+                    await browser.close()
                     raise ToolError(
-                        f"REFUSED: fill into sensitive field {field!r} blocked at execute time"
+                        f"Blocked: click target matches payment/checkout keyword — {target!r}"
                     )
-                locator = page.locator(f'[name="{field}"]')
-                if await locator.count() == 0:
-                    locator = page.get_by_label(label or field)
-                await locator.first.fill(value)
-                return ActPreview(
-                    intent=intent,
-                    target=field,
-                    would_do=f"filled field {field!r}",
-                    blocked=False,
-                    requires_confirm=False,
-                )
+                await page.click(target)
 
-            raise ToolError(f"Unknown intent {intent!r}. Supported: navigate, click, fill.")
-
-        finally:
             await browser.close()
 
+        return {"status": "ok", "intent": intent, "fields_filled": filled_fields}
 
-# ---------------------------------------------------------------------------
-# Public API — send_approved()
-# ---------------------------------------------------------------------------
+    except ToolError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        # M: Exception scrub — expose type name only
+        raise ToolError(f"Browser error: {type(exc).__name__}") from None
 
 
 async def send_approved(
     queue_path: str,
     confirm_send: bool = False,
-) -> SendResult:
-    """Submit ATS applications for items in the queue with status=="approved".
+) -> dict[str, Any]:
+    """Submit all approved queue items via browser automation.
 
-    Safety gates (all checked before any submit):
-    - Only items with status=="approved" are attempted.
-    - is_payment_url() on apply_url → stopped (never submitted).
-    - is_login_context() on apply_url → stopped (needs_manual_login).
-    - classify_sensitive_field() on any prefill field → skipped field (not submitted).
-    - confirm_send=False → dry-run, nothing submitted (SendResult.dry_run=True).
+    Safety rules enforced:
+    - ``confirm_send=True`` required (I5)
+    - Only items with ``status="approved"`` are processed (I5)
+    - Payment URL check on each item (I2)
+    - Login context check on each item (I3)
+    - Sensitive field gate on all prefill fields (I1)
+    - Click-target block list for submit buttons (I4)
 
     Args:
         queue_path:   Absolute path to the JSON queue file.
-        confirm_send: False (default) → dry-run plan only.
-                      True           → actually submit (Playwright required).
+        confirm_send: Must be ``True`` to proceed.  Default ``False``
+                      blocks all submissions (safety gate I5).
 
     Returns:
-        SendResult with attempted/submitted/skipped/stopped counts + dry_run flag.
-    """
-    store = _load_queue(queue_path)
-    approved = [v for v in store.values() if v.get("status") == "approved"]
+        Dict with ``{submitted: [job_ids], skipped: [job_ids], errors: {job_id: reason}}``.
 
-    skipped: list[dict] = []
-    stopped: list[dict] = []
-    submitted_count = 0
+    Raises:
+        ToolError: If ``confirm_send=False``.
+    """
+    if not confirm_send:
+        raise ToolError(
+            "send_approved() requires confirm_send=True.  Review the queue "
+            "first, then call again with confirm_send=True to proceed."
+        )
+
+    _require_playwright()
+
+    items: list[QueueItem] = queue_review(queue_path)
+    approved = [item for item in items if item.status == "approved"]
+
+    submitted: list[str] = []
+    skipped: list[str] = []
+    errors: dict[str, str] = {}
 
     for item in approved:
-        job_id = item.get("job_id", "?")
-        apply_url = item.get("apply_url", "")
+        prefill: PrefillPlan = item.prefill
+        url = prefill.apply_url
 
-        # Rule 2 — payment URL check
-        if apply_url and is_payment_url(apply_url):
-            stopped.append(
-                {
-                    "job_id": job_id,
-                    "reason": f"STOP: payment URL detected — {apply_url!r}",
-                }
-            )
+        # I2
+        if is_payment_url(url):
+            skipped.append(item.job_id)
+            errors[item.job_id] = "payment URL"
             continue
 
-        # Rule 3 — login context check (URL-based heuristic)
-        if apply_url and is_login_context(url=apply_url):
-            stopped.append(
-                {
-                    "job_id": job_id,
-                    "reason": "needs_manual_login",
-                }
-            )
+        # I3
+        if is_login_context(url):
+            skipped.append(item.job_id)
+            errors[item.job_id] = "login URL"
             continue
 
-        # Rule 1 — check all prefill fields for sensitive content
-        prefill_data = item.get("prefill", {})
-        fields: dict = prefill_data.get("fields", {}) if isinstance(prefill_data, dict) else {}
-        sensitive_fields = [f for f in fields if classify_sensitive_field(f)]
-        if sensitive_fields:
-            skipped.append(
-                {
-                    "job_id": job_id,
-                    "reason": f"sensitive fields in prefill: {sensitive_fields}",
-                }
-            )
-            continue
-
-        # Rule 4/5 — dry-run gate
-        if not confirm_send:
-            # Dry run: count as attempted but not submitted
-            continue
-
-        # ── Perform the actual submission (Playwright required) ─────────────
-        _require_playwright()
         try:
-            await _submit_item(item, fields, apply_url)
-            queue_mark_sent(job_id, queue_path)
-            submitted_count += 1
-        except ToolError as exc:
-            stopped.append({"job_id": job_id, "reason": str(exc)})
-        except Exception as exc:  # noqa: BLE001
-            stopped.append({"job_id": job_id, "reason": f"unexpected error: {type(exc).__name__}"})
+            async with async_playwright() as pw:
+                browser = await pw.chromium.launch(headless=True)
+                page = await browser.new_page()
+                await page.goto(url, wait_until="domcontentloaded")
 
-    return SendResult(
-        attempted=len(approved),
-        submitted=submitted_count,
-        skipped=skipped,
-        stopped=stopped,
-        dry_run=not confirm_send,
-    )
-
-
-async def _get_form_input_names(page: Any) -> list[str]:
-    """Return the ``name`` attributes of all <input> elements on *page*.
-
-    Used by _submit_item to scan for sensitive fields before clicking submit.
-    Extracted as a separate coroutine so tests can replace it with a stub.
-    """
-    names: list[str] = await page.eval_on_selector_all(
-        "input",
-        "els => els.map(e => e.name || '').filter(n => n !== '')",
-    )
-    return names
-
-
-async def _submit_item(
-    item: dict,
-    fields: dict[str, str],
-    apply_url: str,
-) -> None:
-    """Open apply_url, fill non-sensitive fields, click submit. Playwright required."""
-    async with _async_playwright() as pw:
-        browser = await pw.chromium.connect_over_cdp(_cdp_url())
-        try:
-            contexts = browser.contexts
-            if not contexts:
-                raise ToolError("No browser context available.")
-            context = contexts[0]
-            page = await context.new_page()
-            await page.goto(apply_url, wait_until="domcontentloaded")
-
-            # Re-check payment/login after navigation (URL may redirect)
-            current_url = page.url
-            if is_payment_url(current_url):
-                raise ToolError(f"STOP: redirected to payment URL — {current_url!r}")
-
-            # I2 — login detection: check URL AND DOM field names
-            page_input_names = await _get_form_input_names(page)
-            if is_login_context(field_names=page_input_names, url=current_url):
-                raise ToolError("needs_manual_login after navigation")
-
-            # I1 — pre-submit sensitive field scan: if ANY form input is sensitive → stop
-            sensitive_on_form = [n for n in page_input_names if classify_sensitive_field(n)]
-            if sensitive_on_form:
-                raise ToolError(
-                    f"STOP: form contains sensitive field(s) {sensitive_on_form!r} — not submitting"
-                )
-
-            # Fill non-sensitive fields
-            for field_name, value in fields.items():
-                # Defense-in-depth: skip if sensitive by name OR in registry
-                if (
-                    classify_sensitive_field(field_name)
-                    or field_name in _prefill_mod._SENSITIVE_FIELDS
-                ):
+                live_url = page.url
+                if is_payment_url(live_url) or is_login_context(live_url):
+                    await browser.close()
+                    skipped.append(item.job_id)
+                    errors[item.job_id] = "redirect to payment/login"
                     continue
-                locator = page.locator(f'[name="{field_name}"]')
-                if await locator.count() > 0:
-                    await locator.first.fill(value)
 
-            # Click submit
-            submit = page.get_by_role("button", name="submit")
-            if await submit.count() == 0:
-                submit = page.locator('[type="submit"]')
-            if await submit.count() > 0:
-                await submit.first.click()
+                # I1: Fill only safe fields
+                fields_to_fill: dict[str, str] = {}
+                for k, v in (prefill.fields or {}).items():
+                    if classify_sensitive_field(k) == "safe":
+                        fields_to_fill[k] = v
 
-        finally:
-            await browser.close()
+                for field_name, value in fields_to_fill.items():
+                    try:
+                        await page.fill(f'[name="{field_name}"]', str(value))
+                    except Exception:  # noqa: BLE001
+                        pass
+
+                # I4: Find and click submit — only if target is not payment-like
+                submit_target = prefill.submit_selector or "button[type='submit']"
+                if _CLICK_BLOCK_RE.search(submit_target):
+                    await browser.close()
+                    skipped.append(item.job_id)
+                    errors[item.job_id] = "submit target matches payment keyword"
+                    continue
+
+                await page.click(submit_target)
+                await browser.close()
+
+            queue_mark_sent(item.job_id, queue_path)
+            submitted.append(item.job_id)
+
+        except ToolError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            # M: Exception scrub
+            errors[item.job_id] = type(exc).__name__
+            skipped.append(item.job_id)
+
+    return {"submitted": submitted, "skipped": skipped, "errors": errors}

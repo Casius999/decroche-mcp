@@ -43,7 +43,7 @@ def _dict_to_item(d: dict) -> QueueItem:
     return QueueItem.model_validate(d)
 
 
-# ── public API ─────────────────────────────────────────────────────────────────
+# ── public API ──────────────────────────────────────────────────────────────────────────────
 
 
 def queue_add(item: QueueItem, path: str) -> None:
