@@ -2,6 +2,11 @@
 
 All functions accept a ``db_path`` parameter so tests can use tmp_path.
 List/dict columns are JSON-encoded in the DB and decoded on read.
+
+Path containment: every db_path goes through ``resolve_data_path``
+(decroche.storage) which confines writes to DECROCHE_DATA_DIR (or
+.decroche_data/) and the system temp dir.  Path traversal
+(``../../etc/x``) is rejected with ToolError.
 """
 
 from __future__ import annotations
@@ -10,6 +15,7 @@ import sqlite3
 from datetime import datetime, timezone
 
 from decroche.models import Application
+from decroche.storage import resolve_data_path
 
 _CREATE = """
 CREATE TABLE IF NOT EXISTS applications (
@@ -20,7 +26,9 @@ CREATE TABLE IF NOT EXISTS applications (
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
-    conn = sqlite3.connect(db_path)
+    safe_path = resolve_data_path(db_path)
+    safe_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(safe_path))
     conn.execute(_CREATE)
     conn.commit()
     return conn

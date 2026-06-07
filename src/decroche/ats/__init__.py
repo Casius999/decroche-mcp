@@ -11,6 +11,7 @@ from typing import Any
 
 from fastmcp import FastMCP
 
+from decroche.ats.adversarial import detect_adversarial as _detect_adversarial
 from decroche.ats.parse_sim import parse_sim as _parse_sim
 from decroche.ats.redflag_scan import redflag_scan as _redflag_scan
 from decroche.ats.screener_brief import screener_brief as _screener_brief
@@ -124,3 +125,52 @@ def score_report(
     before_model = AtsParseResult.model_validate(before)
     after_model = AtsParseResult.model_validate(after) if after is not None else None
     return _score_report(before_model, after=after_model, match=match, redflag_count=redflag_count)
+
+
+@ats_server.tool()
+def detect_adversarial(cv_path: str) -> list[RedFlag]:
+    """Detect adversarial tactics embedded in a submitted CV (spec §2).
+
+    Scans the CV file for three classes of adversarial content:
+    1. prompt_injection (CRITICAL): screener-directed imperatives in the text
+       (EN + FR) designed to manipulate AI screeners.
+    2. hidden_text (CRITICAL): near-invisible text via white/near-white colour
+       or sub-4pt font size (PDF and DOCX).
+    3. keyword_stuffing (HIGH): anomalous token or line repetition designed to
+       game keyword-match scoring.
+
+    This tool ONLY detects adversarial content — it never produces it.
+
+    Args:
+        cv_path: Absolute path to the CV file (PDF, DOCX, TXT, or MD).
+
+    Returns:
+        List of RedFlag objects (empty if no adversarial tactics detected).
+        Each flag has flag_id, severity, location, evidence, and fix.
+    """
+    p = Path(cv_path)
+    ext = p.suffix.lower()
+
+    # Extract raw text for text-based detectors
+    if ext == ".pdf":
+        try:
+            import io
+            import pdfplumber
+
+            with pdfplumber.open(io.BytesIO(p.read_bytes())) as pdf:
+                raw_text = "\n".join((page.extract_text() or "") for page in pdf.pages)
+        except Exception:  # noqa: BLE001
+            raw_text = p.read_bytes().decode("utf-8", errors="replace")
+    elif ext == ".docx":
+        try:
+            import io
+            from docx import Document
+
+            doc = Document(io.BytesIO(p.read_bytes()))
+            raw_text = "\n".join(para.text for para in doc.paragraphs)
+        except Exception:  # noqa: BLE001
+            raw_text = p.read_bytes().decode("utf-8", errors="replace")
+    else:
+        raw_text = p.read_bytes().decode("utf-8", errors="replace")
+
+    return _detect_adversarial(raw_text, file_path=p)

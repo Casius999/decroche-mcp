@@ -4,8 +4,10 @@ from decroche.analytics import analytics_server
 from decroche.apply import apply_server
 from decroche.ats import ats_server
 from decroche.cv import cv_server
+from decroche.interview import interview_server
 from decroche.market import market_server
 from decroche.match import match_server
+from decroche.negotiate import negotiate_server
 from decroche.network import network_server
 from decroche.recruiter import recruiter_server
 from decroche.source import source_server
@@ -20,6 +22,8 @@ mcp.mount(recruiter_server, namespace="recruiter")
 mcp.mount(network_server, namespace="network")
 mcp.mount(apply_server, namespace="apply")
 mcp.mount(analytics_server, namespace="analytics")
+mcp.mount(interview_server, namespace="interview")
+mcp.mount(negotiate_server, namespace="negotiate")
 
 
 def main() -> None:

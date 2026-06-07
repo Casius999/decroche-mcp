@@ -16,6 +16,10 @@ Storage format (JSON array written to ``out_path``):
   },
   ...
 ]
+
+Path containment: writes go through ``resolve_data_path`` (decroche.storage)
+which confines files to DECROCHE_DATA_DIR (or .decroche_data/) and the system
+temp dir.  Path traversal (``../../etc/x``) is rejected with ToolError.
 """
 
 from __future__ import annotations
@@ -25,6 +29,7 @@ from pathlib import Path
 from typing import Any
 
 from decroche.models import Contact, Recruiter
+from decroche.storage import resolve_data_path
 
 _PII_FLAG = True
 _RETENTION_YEARS = 3
@@ -46,12 +51,12 @@ def load_store(path: str | Path) -> list[dict[str, Any]]:
     Returns an empty list if the file does not exist.
 
     Args:
-        path: Path to the JSON store file.
+        path: Path to the JSON store file (confined to data root).
 
     Returns:
         List of record dicts (may be empty).
     """
-    p = Path(path)
+    p = resolve_data_path(str(path))
     if not p.exists():
         return []
     return json.loads(p.read_text(encoding="utf-8"))
@@ -76,8 +81,8 @@ def store_recruiter(
     Returns:
         The newly written record dict (including pii and retention metadata).
     """
-    p = Path(out_path)
-    records = load_store(p)
+    p = resolve_data_path(str(out_path))
+    records = load_store(str(p))
     record = _make_record(recruiter, contact)
     records.append(record)
     p.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")

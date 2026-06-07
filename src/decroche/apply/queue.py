@@ -2,19 +2,24 @@
 
 All functions accept a ``path`` parameter (JSON file) so tests can use tmp_path.
 The store is a JSON object keyed by job_id for O(1) lookup and deduplication.
+
+Path containment: every write goes through ``resolve_data_path`` (from
+decroche.storage) which confines writes to DECROCHE_DATA_DIR (or
+.decroche_data/) and the system temp dir.  Path traversal (``../../etc/x``)
+is rejected with ToolError.
 """
 
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from decroche.models import QueueItem
+from decroche.storage import resolve_data_path
 
 
 def _load(path: str) -> dict[str, dict]:
     """Load the queue store from disk; return empty dict if file absent."""
-    p = Path(path)
+    p = resolve_data_path(path)
     if not p.exists():
         return {}
     with p.open(encoding="utf-8") as fh:
@@ -24,7 +29,7 @@ def _load(path: str) -> dict[str, dict]:
 
 def _save(store: dict[str, dict], path: str) -> None:
     """Persist the queue store to disk."""
-    p = Path(path)
+    p = resolve_data_path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     with p.open("w", encoding="utf-8") as fh:
         json.dump(store, fh, ensure_ascii=False, indent=2)

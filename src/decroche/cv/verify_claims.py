@@ -2,18 +2,16 @@
 
 Flags CV highlights that carry a verifiable assertion (metric, leadership
 headcount, award, certification, named project outcome) and suggests an
-artefact type to back each claim.
-
-The host LLM never fabricates evidence — it only asks the candidate to supply
-the actual link/reference/credential.
+artefact type to back each claim.  No LLM, no network — fully deterministic.
 """
+
 from __future__ import annotations
 
 import re
 
 from decroche.models import Claim, JSONResume
 
-# ── Metric pattern (same logic as xyz_scaffold) ──────────────────────────────────────────
+# ── Metric pattern (same logic as xyz_scaffold) ──────────────────────────────
 
 _METRIC_RE = re.compile(
     r"""
@@ -30,7 +28,7 @@ _METRIC_RE = re.compile(
     re.VERBOSE | re.IGNORECASE,
 )
 
-# ── Leadership with headcount ──────────────────────────────────────────────────────────
+# ── Leadership with headcount ─────────────────────────────────────────────────
 
 # Patterns like "led a team of 8", "managed team of 5", "dirigé une équipe de 3"
 _LEADERSHIP_RE = re.compile(
@@ -46,7 +44,7 @@ _LEADERSHIP_SIMPLE_RE = re.compile(
     re.IGNORECASE,
 )
 
-# ── Named project outcomes ───────────────────────────────────────────────────────────────
+# ── Named project outcomes ────────────────────────────────────────────────────
 
 # A named project = a proper-noun-like token (CamelCase or ALLCAPS or quoted)
 # followed by outcome language
@@ -65,24 +63,20 @@ _PROJECT_METRIC_RE = re.compile(
     re.VERBOSE | re.IGNORECASE,
 )
 
-# ── Artifact type selection ─────────────────────────────────────────────────────────────
+# ── Artifact type selection ───────────────────────────────────────────────────
 
 
 def _suggest_artifact(text: str, reason: str) -> str:
     """Choose a concrete artefact suggestion based on the claim type."""
     if reason == "metric":
-        return (
-            "dashboard screenshot, report link, or reference contact who can confirm the figure"
-        )
+        return "dashboard screenshot, report link, or reference contact who can confirm the figure"
     if reason == "leadership":
         return (
             "LinkedIn reference from a direct report, org chart screenshot, "
             "or reference contact who can confirm headcount"
         )
     if reason == "project":
-        return (
-            "repo/portfolio URL, live product link, or press release / announcement link"
-        )
+        return "repo/portfolio URL, live product link, or press release / announcement link"
     if reason == "certification":
         return "credential URL or certification ID (Credly, Coursera, AWS, etc.)"
     if reason == "award":
@@ -90,7 +84,7 @@ def _suggest_artifact(text: str, reason: str) -> str:
     return "supporting link, reference, or document"
 
 
-# ── Claim detection ───────────────────────────────────────────────────────────────────────
+# ── Claim detection ───────────────────────────────────────────────────────────
 
 
 def _classify_highlight(text: str) -> tuple[bool, str]:
