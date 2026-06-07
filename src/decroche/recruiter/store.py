@@ -6,16 +6,17 @@ CNIL/RGPD compliance:
 - An optional AIDefence PII gate can be applied by the caller before calling
   ``store_recruiter``; it is NOT performed here to keep this module pure/sync.
 
-Storage format (JSON array written to ``out_path``):
-[
-  {
-    "pii": true,
-    "retention_max_years": 3,
-    "recruiter": { ... },
-    "contact":   { ... }
-  },
-  ...
-]
+Storage format (JSON array written to ``out_path``)::
+
+    [
+      {
+        "pii": true,
+        "retention_max_years": 3,
+        "recruiter": { ... },
+        "contact":   { ... }
+      },
+      ...
+    ]
 
 Path containment: writes go through ``resolve_data_path`` (decroche.storage)
 which confines files to DECROCHE_DATA_DIR (or .decroche_data/) and the system

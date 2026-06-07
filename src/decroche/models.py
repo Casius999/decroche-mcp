@@ -98,7 +98,7 @@ class MarketProfile(BaseModel):
     anonymized_variant: bool
 
 
-# ── ATS / double-reader models (Tranche 2) ─────────────────────────────────────
+# ── ATS / double-reader models (Tranche 2) ──────────────────────────────────────────────────
 
 
 class Breakage(BaseModel):
@@ -140,7 +140,7 @@ class ScoreReport(BaseModel):
     delta: dict | None  # {parsability_before, parsability_after, breakage_delta} if after given
 
 
-# ── Match / gap models (Tranche 3) ────────────────────────────────────────────
+# ── Match / gap models (Tranche 3) ──────────────────────────────────────────────────────────────────────
 
 
 class RequirementCoverage(BaseModel):
@@ -175,7 +175,7 @@ class KeywordGap(BaseModel):
     evidence: str | None = None
 
 
-# ── Rewrite scaffolding models (Tranche 4) ────────────────────────────────────
+# ── Rewrite scaffolding models (Tranche 4) ───────────────────────────────────────────────────────────────────
 
 
 class XyzScaffold(BaseModel):
@@ -203,7 +203,7 @@ class Claim(BaseModel):
     location: str  # JSON-path-style location, e.g. "work[0].highlights[2]"
 
 
-# ── Render models (Tranche 5) ──────────────────────────────────────────────────
+# ── Render models (Tranche 5) ──────────────────────────────────────────────────────────────────────
 
 
 class RenderFile(BaseModel):
@@ -222,7 +222,7 @@ class Render(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-# ── Source / job-board models (Phase 2) ───────────────────────────────────────
+# ── Source / job-board models (Phase 2) ─────────────────────────────────────────────────────────────
 
 
 class JobPosting(BaseModel):
@@ -253,7 +253,7 @@ class SourceResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-# ── Phase 2b models ───────────────────────────────────────────────────────────
+# ── Phase 2b models ─────────────────────────────────────────────────────────────────────────────
 
 
 class SuccessProbability(BaseModel):
@@ -287,7 +287,7 @@ class MonitorDiff(BaseModel):
     total_count: int
 
 
-# ── Phase 3 models — recruiter intelligence + network/referral ────────────────
+# ── Phase 3 models — recruiter intelligence + network/referral ────────────────────
 
 
 class Recruiter(BaseModel):
@@ -338,7 +338,7 @@ class IntroRequest(BaseModel):
     lang: str = "fr"
 
 
-# ── Phase 4 models — application CRM + apply orchestration ───────────────────
+# ── Phase 4 models — application CRM + apply orchestration ───────────────────────
 
 
 class Application(BaseModel):
@@ -398,7 +398,7 @@ class FunnelStats(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
-# ── Phase 4b models — browser automation (gated, safety-critical) ────────────
+# ── Phase 4b models — browser automation (gated, safety-critical) ─────────────────
 
 
 class ActPreview(BaseModel):
@@ -430,3 +430,96 @@ class SendResult(BaseModel):
     skipped: list[dict] = Field(default_factory=list)
     stopped: list[dict] = Field(default_factory=list)
     dry_run: bool = True
+
+
+# ── Phase 5 models — interview prep ──────────────────────────────────────────────────────────────
+
+
+class CompanyBrief(BaseModel):
+    """Research scaffold for company interview preparation."""
+
+    company: str
+    sections: dict[str, str] = Field(default_factory=dict)
+    # keys: what_they_do, recent_signals, culture, role_context, questions_to_ask
+    research_checklist: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class Story(BaseModel):
+    """A STAR+E story for interview preparation."""
+
+    title: str
+    situation: str
+    task: str
+    action: str
+    result: str
+    effect: str = ""  # optional extended impact
+    competencies: list[str] = Field(default_factory=list)
+
+
+class StoryGap(BaseModel):
+    """Coverage gap for a competency in the story bank."""
+
+    competency: str
+    covered: bool
+
+
+class Question(BaseModel):
+    """An interview question from the question bank."""
+
+    text: str
+    kind: str  # "behavioral" | "technical" | "case"
+    rationale: str = ""
+
+
+class MockEval(BaseModel):
+    """Deterministic evaluation of a mock interview answer."""
+
+    has_star: bool
+    quantified: bool
+    i_we_ratio: float  # i_count / max(1, we_count)
+    est_seconds: int = 0  # estimated duration at ~130 wpm
+    word_count: int
+    score_0_100: float
+    score_band: str = "med"  # "low" | "med" | "high"
+    feedback: list[str] = Field(default_factory=list)
+
+
+# ── Phase 5 models — salary negotiation ───────────────────────────────────────────────────────
+
+
+class SalaryRange(BaseModel):
+    """Sourced salary benchmark for a role/seniority/region combination."""
+
+    role_family: str
+    seniority: str
+    region: str
+    currency: str
+    p25: int
+    p50: int
+    p75: int
+    variable_pct: float = 0.0  # 0.0–1.0
+    source: str = ""
+    approximate: bool = False  # True if closest match rather than exact
+    note: str = ""  # interpolation / approximation note
+
+
+class TotalComp(BaseModel):
+    """Total compensation breakdown."""
+
+    base: float
+    variable: float = 0.0
+    signing: float = 0.0
+    equity_annualized: float = 0.0
+    total: float
+    currency: str = "EUR"
+
+
+class CounterOffer(BaseModel):
+    """A counter-offer message scaffold."""
+
+    subject: str
+    body: str
+    lang: str = "fr"
+    target: float  # the target base salary used as anchor
+    rationale: str = ""  # data-backed rationale summary
