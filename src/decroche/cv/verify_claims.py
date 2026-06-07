@@ -11,16 +11,16 @@ import re
 
 from decroche.models import Claim, JSONResume
 
-# ── Metric pattern (same logic as xyz_scaffold) ──────────────────────────────
+# ── Metric pattern (same logic as xyz_scaffold) ────────────────────────────────────────────
 
 _METRIC_RE = re.compile(
     r"""
     (?:
         \d+(?:[.,]\d+)?\s*%           # 38%, 3.5%
-      | [€\$£]\s*\d+                   # €2M, $500k
-      | \d+\s*[€\$£]                   # 10k€
-      | \d+(?:[.,]\d+)?\s*[xX×]        # 2x, 3×
-      | [xX×]\s*\d+(?:[.,]\d+)?        # x2
+      | [€\$\xa3]\s*\d+                   # €2M, $500k
+      | \d+\s*[€\$\xa3]                   # 10k€
+      | \d+(?:[.,]\d+)?\s*[xX\xd7]        # 2x, 3×
+      | [xX\xd7]\s*\d+(?:[.,]\d+)?        # x2
       | \d+(?:[.,]\d+)?\s*(?:M|k|K)    # 2M, 500k
       | \d+\s+(?:months?|weeks?|days?|years?|mois|semaines?|jours?|ans?)
     )
@@ -28,7 +28,7 @@ _METRIC_RE = re.compile(
     re.VERBOSE | re.IGNORECASE,
 )
 
-# ── Leadership with headcount ─────────────────────────────────────────────────
+# ── Leadership with headcount ───────────────────────────────────────────────────────────────
 
 # Patterns like "led a team of 8", "managed team of 5", "dirigé une équipe de 3"
 _LEADERSHIP_RE = re.compile(
@@ -44,7 +44,7 @@ _LEADERSHIP_SIMPLE_RE = re.compile(
     re.IGNORECASE,
 )
 
-# ── Named project outcomes ────────────────────────────────────────────────────
+# ── Named project outcomes ───────────────────────────────────────────────────────────────────
 
 # A named project = a proper-noun-like token (CamelCase or ALLCAPS or quoted)
 # followed by outcome language
@@ -63,7 +63,7 @@ _PROJECT_METRIC_RE = re.compile(
     re.VERBOSE | re.IGNORECASE,
 )
 
-# ── Artifact type selection ───────────────────────────────────────────────────
+# ── Artifact type selection ────────────────────────────────────────────────────────────────
 
 
 def _suggest_artifact(text: str, reason: str) -> str:
@@ -84,7 +84,7 @@ def _suggest_artifact(text: str, reason: str) -> str:
     return "supporting link, reference, or document"
 
 
-# ── Claim detection ───────────────────────────────────────────────────────────
+# ── Claim detection ───────────────────────────────────────────────────────────────────────
 
 
 def _classify_highlight(text: str) -> tuple[bool, str]:
@@ -108,7 +108,7 @@ def _classify_highlight(text: str) -> tuple[bool, str]:
 
     # Certifications (mentioned in highlight rather than certifications section)
     cert_pattern = re.search(
-        r"\b(?:certified|certification|certificat|diplômé|awarded|credential)\b",
+        r"\b(?:certified|certification|certificat|diplomé|awarded|credential)\b",
         text,
         re.IGNORECASE,
     )

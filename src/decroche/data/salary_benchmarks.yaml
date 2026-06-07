@@ -1,0 +1,388 @@
+# Salary benchmarks — sourced estimates for tech/product/data roles
+# Sources:
+#   APEC 2024: https://recruteurs.apec.fr/Emploi-cadre/Marche-de-l-emploi/Les-etudes-de-l-Apec/Remunerations-des-cadres
+#     FR cadres median ~55k€ overall; tech cadres median ~52–62k€ by seniority
+#   Levels.fyi 2024 (US/EU data): https://www.levels.fyi
+#   Glassdoor FR 2024: aggregate salary surveys
+#   Robert Half 2024 Tech Salary Guide (UK/CA): approximate ranges
+# All figures are base salary in thousands of local currency (k).
+# variable_pct: share of total comp that is variable (0.0–1.0).
+# Figures are honest estimates — mark approximate:true when interpolated.
+
+# ── France (FR) — EUR ────────────────────────────────────────────────────────────────────────────
+- role_family: software
+  seniority: junior
+  region: fr
+  p25: 37
+  p50: 42
+  p75: 48
+  currency: EUR
+  variable_pct: 0.05
+  source: "APEC 2024 / Glassdoor FR 2024"
+  approximate: false
+
+- role_family: software
+  seniority: mid
+  region: fr
+  p25: 48
+  p50: 55
+  p75: 65
+  currency: EUR
+  variable_pct: 0.08
+  source: "APEC 2024 / Glassdoor FR 2024"
+  approximate: false
+
+- role_family: software
+  seniority: senior
+  region: fr
+  p25: 60
+  p50: 72
+  p75: 85
+  currency: EUR
+  variable_pct: 0.10
+  source: "APEC 2024 / Levels.fyi EU"
+  approximate: false
+
+- role_family: software
+  seniority: lead
+  region: fr
+  p25: 75
+  p50: 90
+  p75: 110
+  currency: EUR
+  variable_pct: 0.12
+  source: "APEC 2024 / Levels.fyi EU"
+  approximate: false
+
+- role_family: data
+  seniority: junior
+  region: fr
+  p25: 35
+  p50: 40
+  p75: 46
+  currency: EUR
+  variable_pct: 0.05
+  source: "APEC 2024 / Glassdoor FR 2024"
+  approximate: false
+
+- role_family: data
+  seniority: mid
+  region: fr
+  p25: 45
+  p50: 52
+  p75: 62
+  currency: EUR
+  variable_pct: 0.08
+  source: "APEC 2024 / Glassdoor FR 2024"
+  approximate: false
+
+- role_family: data
+  seniority: senior
+  region: fr
+  p25: 58
+  p50: 68
+  p75: 80
+  currency: EUR
+  variable_pct: 0.10
+  source: "APEC 2024 / Levels.fyi EU"
+  approximate: false
+
+- role_family: data
+  seniority: lead
+  region: fr
+  p25: 70
+  p50: 85
+  p75: 100
+  currency: EUR
+  variable_pct: 0.12
+  source: "APEC 2024 / Levels.fyi EU"
+  approximate: true
+
+- role_family: product
+  seniority: junior
+  region: fr
+  p25: 38
+  p50: 44
+  p75: 50
+  currency: EUR
+  variable_pct: 0.08
+  source: "APEC 2024 / Glassdoor FR 2024"
+  approximate: false
+
+- role_family: product
+  seniority: mid
+  region: fr
+  p25: 50
+  p50: 58
+  p75: 68
+  currency: EUR
+  variable_pct: 0.10
+  source: "APEC 2024 / Glassdoor FR 2024"
+  approximate: false
+
+- role_family: product
+  seniority: senior
+  region: fr
+  p25: 62
+  p50: 75
+  p75: 90
+  currency: EUR
+  variable_pct: 0.12
+  source: "APEC 2024 / Levels.fyi EU"
+  approximate: false
+
+- role_family: product
+  seniority: lead
+  region: fr
+  p25: 78
+  p50: 95
+  p75: 115
+  currency: EUR
+  variable_pct: 0.15
+  source: "APEC 2024 / Levels.fyi EU"
+  approximate: true
+
+- role_family: sales
+  seniority: junior
+  region: fr
+  p25: 32
+  p50: 38
+  p75: 45
+  currency: EUR
+  variable_pct: 0.30
+  source: "APEC 2024 / Glassdoor FR 2024"
+  approximate: false
+
+- role_family: sales
+  seniority: mid
+  region: fr
+  p25: 42
+  p50: 52
+  p75: 65
+  currency: EUR
+  variable_pct: 0.35
+  source: "APEC 2024 / Glassdoor FR 2024"
+  approximate: false
+
+- role_family: sales
+  seniority: senior
+  region: fr
+  p25: 55
+  p50: 68
+  p75: 85
+  currency: EUR
+  variable_pct: 0.40
+  source: "APEC 2024"
+  approximate: true
+
+- role_family: sales
+  seniority: lead
+  region: fr
+  p25: 70
+  p50: 88
+  p75: 110
+  currency: EUR
+  variable_pct: 0.45
+  source: "APEC 2024"
+  approximate: true
+
+# ── United States (US) — USD ──────────────────────────────────────────────────────────────────────
+- role_family: software
+  seniority: junior
+  region: us
+  p25: 85
+  p50: 100
+  p75: 120
+  currency: USD
+  variable_pct: 0.10
+  source: "Levels.fyi 2024"
+  approximate: false
+
+- role_family: software
+  seniority: mid
+  region: us
+  p25: 120
+  p50: 145
+  p75: 170
+  currency: USD
+  variable_pct: 0.12
+  source: "Levels.fyi 2024"
+  approximate: false
+
+- role_family: software
+  seniority: senior
+  region: us
+  p25: 160
+  p50: 195
+  p75: 240
+  currency: USD
+  variable_pct: 0.15
+  source: "Levels.fyi 2024"
+  approximate: false
+
+- role_family: software
+  seniority: lead
+  region: us
+  p25: 200
+  p50: 250
+  p75: 310
+  currency: USD
+  variable_pct: 0.20
+  source: "Levels.fyi 2024"
+  approximate: false
+
+- role_family: data
+  seniority: mid
+  region: us
+  p25: 110
+  p50: 130
+  p75: 155
+  currency: USD
+  variable_pct: 0.10
+  source: "Levels.fyi 2024"
+  approximate: false
+
+- role_family: data
+  seniority: senior
+  region: us
+  p25: 145
+  p50: 175
+  p75: 215
+  currency: USD
+  variable_pct: 0.12
+  source: "Levels.fyi 2024"
+  approximate: false
+
+- role_family: product
+  seniority: mid
+  region: us
+  p25: 115
+  p50: 140
+  p75: 165
+  currency: USD
+  variable_pct: 0.12
+  source: "Levels.fyi 2024"
+  approximate: false
+
+- role_family: product
+  seniority: senior
+  region: us
+  p25: 155
+  p50: 185
+  p75: 225
+  currency: USD
+  variable_pct: 0.15
+  source: "Levels.fyi 2024"
+  approximate: false
+
+# ── United Kingdom (UK) — GBP ────────────────────────────────────────────────────────────────────
+- role_family: software
+  seniority: junior
+  region: uk
+  p25: 35
+  p50: 42
+  p75: 50
+  currency: GBP
+  variable_pct: 0.05
+  source: "Robert Half 2024 Tech Salary Guide UK"
+  approximate: false
+
+- role_family: software
+  seniority: mid
+  region: uk
+  p25: 55
+  p50: 68
+  p75: 82
+  currency: GBP
+  variable_pct: 0.08
+  source: "Robert Half 2024 Tech Salary Guide UK"
+  approximate: false
+
+- role_family: software
+  seniority: senior
+  region: uk
+  p25: 80
+  p50: 98
+  p75: 120
+  currency: GBP
+  variable_pct: 0.10
+  source: "Robert Half 2024 Tech Salary Guide UK"
+  approximate: false
+
+- role_family: data
+  seniority: mid
+  region: uk
+  p25: 50
+  p50: 62
+  p75: 75
+  currency: GBP
+  variable_pct: 0.08
+  source: "Robert Half 2024 Tech Salary Guide UK"
+  approximate: false
+
+- role_family: product
+  seniority: mid
+  region: uk
+  p25: 55
+  p50: 68
+  p75: 82
+  currency: GBP
+  variable_pct: 0.10
+  source: "Robert Half 2024 Tech Salary Guide UK"
+  approximate: true
+
+# ── Canada (CA) — CAD ────────────────────────────────────────────────────────────────────────────
+- role_family: software
+  seniority: junior
+  region: ca
+  p25: 60
+  p50: 72
+  p75: 85
+  currency: CAD
+  variable_pct: 0.05
+  source: "Robert Half 2024 Tech Salary Guide CA"
+  approximate: false
+
+- role_family: software
+  seniority: mid
+  region: ca
+  p25: 85
+  p50: 100
+  p75: 120
+  currency: CAD
+  variable_pct: 0.08
+  source: "Robert Half 2024 Tech Salary Guide CA"
+  approximate: false
+
+- role_family: software
+  seniority: senior
+  region: ca
+  p25: 115
+  p50: 135
+  p75: 160
+  currency: CAD
+  variable_pct: 0.10
+  source: "Robert Half 2024 Tech Salary Guide CA"
+  approximate: false
+
+- role_family: data
+  seniority: mid
+  region: ca
+  p25: 75
+  p50: 90
+  p75: 108
+  currency: CAD
+  variable_pct: 0.08
+  source: "Robert Half 2024 Tech Salary Guide CA"
+  approximate: true
+
+- role_family: product
+  seniority: mid
+  region: ca
+  p25: 80
+  p50: 95
+  p75: 115
+  currency: CAD
+  variable_pct: 0.10
+  source: "Robert Half 2024 Tech Salary Guide CA"
+  approximate: true
