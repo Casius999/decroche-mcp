@@ -1,0 +1,33 @@
+{
+  "type": "JOBS",
+  "hits": 150,
+  "jobs": [
+    {
+      "url": "https://www.careerjet.fr/emploi/a7b8c9d0e1f2",
+      "title": "Développeur Python",
+      "company": "DataSolutions SAS",
+      "locations": "Paris, Île-de-France",
+      "date": "il y a 2 jours",
+      "description": "Nous recherchons un développeur Python expérimenté pour rejoindre notre équipe data engineering.",
+      "site": "careerjet.fr"
+    },
+    {
+      "url": "https://www.careerjet.fr/emploi/z1y2x3w4v5u6",
+      "title": "Ingénieur Machine Learning",
+      "company": "AI Labs France",
+      "locations": "Lyon, Auvergne-Rhône-Alpes",
+      "date": "il y a 5 jours",
+      "description": "Rejoignez notre équipe de recherche en intelligence artificielle.",
+      "site": "careerjet.fr"
+    },
+    {
+      "url": "https://www.careerjet.fr/emploi/q7p8o9n0m1l2",
+      "title": "Data Engineer",
+      "company": null,
+      "locations": null,
+      "date": null,
+      "description": "",
+      "site": "careerjet.fr"
+    }
+  ]
+}

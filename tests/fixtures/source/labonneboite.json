@@ -1,0 +1,35 @@
+{
+  "companies": [
+    {
+      "siret": "12345678901234",
+      "name": "Startup Tech Lyon",
+      "naf": "6201Z",
+      "naf_text": "Programmation informatique",
+      "city": "Lyon",
+      "zipcode": "69002",
+      "departement": "69",
+      "stars": 4.2,
+      "url": "https://labonneboite.francetravail.fr/entreprise/12345678901234",
+      "lat": 45.748,
+      "lon": 4.847,
+      "headcount_text": "50 à 99 salariés",
+      "rome_codes": ["M1805"]
+    },
+    {
+      "siret": "98765432100001",
+      "name": "Cabinet Conseil Paris",
+      "naf": "6202A",
+      "naf_text": "Conseil en systèmes et logiciels informatiques",
+      "city": "Paris",
+      "zipcode": "75008",
+      "departement": "75",
+      "stars": 3.8,
+      "url": null,
+      "lat": 48.874,
+      "lon": 2.302,
+      "headcount_text": "10 à 19 salariés",
+      "rome_codes": ["M1805", "M1802"]
+    }
+  ],
+  "total": 2
+}

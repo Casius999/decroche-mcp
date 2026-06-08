@@ -10,7 +10,9 @@ Keyless tools:
 - remoteok()                     : RemoteOK API (all remote jobs)
 - remotive(search)               : Remotive API (optional search filter)
 - arbeitnow()                    : Arbeitnow Job Board API
+- careerjet(keywords, location)  : Careerjet public API (CAREERJET_AFFID optional)
 - search_all(...)                : Concurrent aggregation across providers
+- search_market(query, region)   : Breadth orchestrator — fan-out across known boards
 
 Keyed tools (require env vars — raise ToolError if absent):
 - france_travail(query, location)  : France Travail v2 (FRANCE_TRAVAIL_ID/SECRET)
@@ -20,6 +22,7 @@ Keyed tools (require env vars — raise ToolError if absent):
 - reed(query)                      : Reed.co.uk UK (REED_KEY)
 - themuse(category)                : The Muse (THEMUSE_KEY optional)
 - jooble(query, location)          : Jooble (JOOBLE_KEY)
+- labonneboite(rome, commune)      : La Bonne Boîte hidden market (FRANCE_TRAVAIL_ID/SECRET)
 
 Network errors per keyless provider are caught and surfaced as ``warnings``.
 Keyed providers propagate ToolError (missing key) directly.
@@ -31,16 +34,19 @@ from fastmcp import FastMCP
 
 from decroche.models import JobPosting, MonitorDiff, SourceResult
 from decroche.source.aggregate import search_all as _search_all
+from decroche.source.market_search import search_market as _search_market
 from decroche.source.monitor import monitor_diff as _monitor_diff
 from decroche.source.monitor import monitor_snapshot as _monitor_snapshot
 from decroche.source.providers import (
     adzuna as _adzuna,
     arbeitnow as _arbeitnow,
     ashby as _ashby,
+    careerjet as _careerjet,
     france_travail as _france_travail,
     greenhouse as _greenhouse,
     jooble as _jooble,
     jsearch as _jsearch,
+    labonneboite as _labonneboite,
     lever as _lever,
     recruitee as _recruitee,
     reed as _reed,
@@ -55,7 +61,7 @@ from decroche.source.providers import (
 source_server = FastMCP("source")
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────────────
+# ── helpers ─────────────────────────────────────────────────────────────────────────────────
 
 
 async def _safe_fetch_and_normalize(
@@ -83,7 +89,7 @@ async def _safe_fetch_and_normalize(
     )
 
 
-# ── tools ─────────────────────────────────────────────────────────────────────────────
+# ── tools ──────────────────────────────────────────────────────────────────────────────────
 
 
 @source_server.tool
@@ -240,7 +246,7 @@ async def arbeitnow() -> SourceResult:
     )
 
 
-# ── keyed provider tools ─────────────────────────────────────────────────────────────────────
+# ── keyed provider tools ───────────────────────────────────────────────────────────────────────
 
 
 @source_server.tool
@@ -419,6 +425,67 @@ async def jooble(query: str, location: str = "") -> SourceResult:
 
 
 @source_server.tool
+async def labonneboite(rome: str, commune: str, distance: int = 10) -> SourceResult:
+    """Fetch companies likely to hire from La Bonne Boîte (hidden job market).
+
+    La Bonne Boîte surfaces companies likely to recruit in a given ROME code
+    and commune, even when they have published no formal job offer.  Each result
+    is a JobPosting with a ``(marché caché)`` title prefix.
+
+    Requires env: FRANCE_TRAVAIL_ID, FRANCE_TRAVAIL_SECRET
+    Scope: api_labonneboitev1 (partner must subscribe in the FT developer portal)
+
+    NOTE: scope acceptance requires partner subscription to the La Bonne Boîte
+    product.  Live verification of the endpoint and scope is needed before
+    production use — see project report.
+
+    Args:
+        rome:     ROME occupation code (e.g. ``"M1805"``).
+        commune:  INSEE commune code (e.g. ``"69123"`` for Lyon).
+        distance: Radius in km, default 10.
+
+    Returns:
+        SourceResult with normalised hidden-market company postings.
+
+    Raises:
+        ToolError: if FRANCE_TRAVAIL_ID or FRANCE_TRAVAIL_SECRET are not set.
+    """
+    raw = await _labonneboite.fetch(rome, commune, distance=distance)
+    jobs = _labonneboite.normalize(raw)
+    return SourceResult(
+        provider="labonneboite",
+        query=f"{rome}/{commune}",
+        count=len(jobs),
+        jobs=jobs,
+    )
+
+
+@source_server.tool
+async def careerjet(keywords: str, location: str = "", locale: str = "fr_FR") -> SourceResult:
+    """Fetch jobs from Careerjet public API (international job aggregator).
+
+    Optional env: CAREERJET_AFFID — affiliate ID for higher rate limits.
+    Works without it in some locales (reduced results possible).
+
+    Args:
+        keywords: Search keywords (e.g. ``"développeur python"``).
+        location: Location filter (e.g. ``"Paris"``).  Empty = all.
+        locale:   Careerjet locale code, default ``"fr_FR"``.
+
+    Returns:
+        SourceResult with normalised job postings.
+    """
+    raw = await _careerjet.fetch(keywords, location, locale=locale)
+    jobs = _careerjet.normalize(raw)
+    return SourceResult(
+        provider="careerjet",
+        query=keywords or None,
+        count=len(jobs),
+        jobs=jobs,
+    )
+
+
+@source_server.tool
 async def search_all(
     greenhouse_tokens: list[str] | None = None,
     lever_companies: list[str] | None = None,
@@ -451,7 +518,52 @@ async def search_all(
     return jobs
 
 
-# ── monitor tools ──────────────────────────────────────────────────────────────────────────
+# ── breadth search tool ───────────────────────────────────────────────────────────────────────
+
+
+@source_server.tool
+async def source_search_market(
+    query: str,
+    region: str = "fr",
+    use_keyed: bool = True,
+    per_provider_limit: int = 50,
+) -> SourceResult:
+    """Search across the maximum number of job sources for maximum breadth.
+
+    Fans out across all boards in the built-in ``known_boards.yaml`` registry
+    (greenhouse/lever/ashby/recruitee tokens) plus optionally any keyed
+    providers whose env vars are set (france_travail/adzuna/jsearch).
+
+    Results are deduplicated, query-filtered, and sorted by date descending.
+
+    Args:
+        query:               Search keywords (e.g. ``"développeur python"``).
+                             Empty string returns all found postings.
+        region:              Hint for keyed providers (e.g. ``"fr"`` for France).
+        use_keyed:           Include keyed providers when env vars are set.
+        per_provider_limit:  Max postings per individual board call (default 50).
+
+    Returns:
+        SourceResult with deduplicated, filtered, sorted job postings.
+        Warnings list skipped providers and errors.
+    """
+    jobs, warnings = await _search_market(
+        query,
+        region=region,
+        use_keyed=use_keyed,
+        per_provider_limit=per_provider_limit,
+        _return_warnings=True,
+    )
+    return SourceResult(
+        provider="market_search",
+        query=query or None,
+        count=len(jobs),
+        jobs=jobs,
+        warnings=warnings,
+    )
+
+
+# ── monitor tools ───────────────────────────────────────────────────────────────────────────
 
 
 @source_server.tool

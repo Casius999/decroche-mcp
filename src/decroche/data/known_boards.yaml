@@ -1,0 +1,391 @@
+# known_boards.yaml — Curated seed list of public company job-board tokens
+#
+# Fields:
+#   provider  : greenhouse | lever | ashby | recruitee
+#   token     : board token / company slug used in the provider API
+#   company   : human-readable company name
+#   sector    : (optional) industry sector
+#   region    : (optional) primary hiring region
+#   verified  : (optional) false = token not live-verified; omitted = assumed verified
+#
+# This is a SEED list — extend it with your own entries.
+# Only well-known public boards are listed; uncertain tokens are flagged verified: false.
+
+# ── Greenhouse ─────────────────────────────────────────────────────────────────────────────────
+
+- provider: greenhouse
+  token: stripe
+  company: Stripe
+  sector: fintech
+  region: global
+
+- provider: greenhouse
+  token: airbnb
+  company: Airbnb
+  sector: travel
+  region: global
+
+- provider: greenhouse
+  token: databricks
+  company: Databricks
+  sector: data/AI
+  region: global
+
+- provider: greenhouse
+  token: figma
+  company: Figma
+  sector: design tools
+  region: global
+
+- provider: greenhouse
+  token: confluent
+  company: Confluent
+  sector: data streaming
+  region: global
+
+- provider: greenhouse
+  token: hashicorp
+  company: HashiCorp
+  sector: devops/cloud
+  region: global
+
+- provider: greenhouse
+  token: datadog
+  company: Datadog
+  sector: observability
+  region: global
+
+- provider: greenhouse
+  token: mongodb
+  company: MongoDB
+  sector: database
+  region: global
+
+- provider: greenhouse
+  token: twilio
+  company: Twilio
+  sector: communications
+  region: global
+
+- provider: greenhouse
+  token: coinbase
+  company: Coinbase
+  sector: crypto/fintech
+  region: global
+
+- provider: greenhouse
+  token: cloudflare
+  company: Cloudflare
+  sector: networking/security
+  region: global
+
+- provider: greenhouse
+  token: zendesk
+  company: Zendesk
+  sector: customer support
+  region: global
+
+- provider: greenhouse
+  token: hubspot
+  company: HubSpot
+  sector: marketing SaaS
+  region: global
+
+- provider: greenhouse
+  token: squarespace
+  company: Squarespace
+  sector: website builder
+  region: global
+
+- provider: greenhouse
+  token: dropbox
+  company: Dropbox
+  sector: cloud storage
+  region: global
+
+- provider: greenhouse
+  token: reddit
+  company: Reddit
+  sector: social media
+  region: global
+
+- provider: greenhouse
+  token: brex
+  company: Brex
+  sector: fintech
+  region: global
+
+- provider: greenhouse
+  token: benchling
+  company: Benchling
+  sector: biotech SaaS
+  region: global
+
+- provider: greenhouse
+  token: dbt
+  company: dbt Labs
+  sector: data analytics
+  region: global
+
+- provider: greenhouse
+  token: amplitude
+  company: Amplitude
+  sector: product analytics
+  region: global
+
+- provider: greenhouse
+  token: canva
+  company: Canva
+  sector: design tools
+  region: global
+
+- provider: greenhouse
+  token: asana
+  company: Asana
+  sector: project management
+  region: global
+
+- provider: greenhouse
+  token: mixpanel
+  company: Mixpanel
+  sector: product analytics
+  region: global
+  verified: false
+
+- provider: greenhouse
+  token: algolia
+  company: Algolia
+  sector: search API
+  region: global
+
+- provider: greenhouse
+  token: contentful
+  company: Contentful
+  sector: CMS/headless
+  region: europe
+
+- provider: greenhouse
+  token: sentry
+  company: Sentry
+  sector: error monitoring
+  region: global
+
+# ── Lever ──────────────────────────────────────────────────────────────────────────────────
+
+- provider: lever
+  token: plaid
+  company: Plaid
+  sector: fintech infrastructure
+  region: global
+
+- provider: lever
+  token: postman
+  company: Postman
+  sector: API development
+  region: global
+
+- provider: lever
+  token: scale-ai
+  company: Scale AI
+  sector: AI/data labeling
+  region: global
+  verified: false
+
+- provider: lever
+  token: grammarly
+  company: Grammarly
+  sector: AI writing
+  region: global
+
+- provider: lever
+  token: grafana
+  company: Grafana Labs
+  sector: observability
+  region: global
+
+- provider: lever
+  token: netlify
+  company: Netlify
+  sector: web hosting/DevOps
+  region: global
+
+- provider: lever
+  token: gem
+  company: Gem
+  sector: recruiting CRM
+  region: global
+  verified: false
+
+- provider: lever
+  token: robinhood
+  company: Robinhood
+  sector: fintech
+  region: global
+  verified: false
+
+- provider: lever
+  token: replit
+  company: Replit
+  sector: development tools
+  region: global
+
+- provider: lever
+  token: wunderkind
+  company: Wunderkind
+  sector: marketing tech
+  region: global
+  verified: false
+
+- provider: lever
+  token: airtable
+  company: Airtable
+  sector: no-code/SaaS
+  region: global
+
+- provider: lever
+  token: carta
+  company: Carta
+  sector: equity management
+  region: global
+  verified: false
+
+# ── Ashby ──────────────────────────────────────────────────────────────────────────────────
+
+- provider: ashby
+  token: notion
+  company: Notion
+  sector: productivity SaaS
+  region: global
+
+- provider: ashby
+  token: ramp
+  company: Ramp
+  sector: fintech/corporate cards
+  region: global
+
+- provider: ashby
+  token: vercel
+  company: Vercel
+  sector: web infrastructure
+  region: global
+
+- provider: ashby
+  token: linear
+  company: Linear
+  sector: project management
+  region: global
+
+- provider: ashby
+  token: retool
+  company: Retool
+  sector: internal tools
+  region: global
+
+- provider: ashby
+  token: clerk
+  company: Clerk
+  sector: auth SaaS
+  region: global
+  verified: false
+
+- provider: ashby
+  token: resend
+  company: Resend
+  sector: email API
+  region: global
+  verified: false
+
+- provider: ashby
+  token: mintlify
+  company: Mintlify
+  sector: developer docs
+  region: global
+  verified: false
+
+- provider: ashby
+  token: coreweave
+  company: CoreWeave
+  sector: GPU cloud
+  region: global
+  verified: false
+
+- provider: ashby
+  token: modal
+  company: Modal
+  sector: serverless compute
+  region: global
+  verified: false
+
+- provider: ashby
+  token: sourcegraph
+  company: Sourcegraph
+  sector: code search/AI
+  region: global
+
+# ── Recruitee (European companies) ─────────────────────────────────────────────────────
+
+- provider: recruitee
+  token: contentful
+  company: Contentful
+  sector: CMS/headless
+  region: europe
+  verified: false
+
+- provider: recruitee
+  token: personio
+  company: Personio
+  sector: HR software
+  region: europe
+
+- provider: recruitee
+  token: sumup
+  company: SumUp
+  sector: fintech/payments
+  region: europe
+
+- provider: recruitee
+  token: gorillas
+  company: Gorillas
+  sector: quick-commerce
+  region: europe
+  verified: false
+
+- provider: recruitee
+  token: helloprint
+  company: HelloPrint
+  sector: e-commerce/print
+  region: europe
+  verified: false
+
+- provider: recruitee
+  token: mollie
+  company: Mollie
+  sector: payments
+  region: europe
+
+- provider: recruitee
+  token: vinted
+  company: Vinted
+  sector: second-hand marketplace
+  region: europe
+  verified: false
+
+- provider: recruitee
+  token: getir
+  company: Getir
+  sector: quick-commerce
+  region: europe
+  verified: false
+
+- provider: recruitee
+  token: catawiki
+  company: Catawiki
+  sector: online auctions
+  region: europe
+
+- provider: recruitee
+  token: messagebird
+  company: MessageBird (Bird)
+  sector: communications
+  region: europe
+  verified: false

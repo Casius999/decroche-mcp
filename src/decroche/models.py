@@ -98,7 +98,7 @@ class MarketProfile(BaseModel):
     anonymized_variant: bool
 
 
-# ── ATS / double-reader models (Tranche 2) ──────────────────────────────────────────────────
+# ── ATS / double-reader models (Tranche 2) ──────────────────────────────────────────────
 
 
 class Breakage(BaseModel):
@@ -140,7 +140,7 @@ class ScoreReport(BaseModel):
     delta: dict | None  # {parsability_before, parsability_after, breakage_delta} if after given
 
 
-# ── Match / gap models (Tranche 3) ──────────────────────────────────────────────────────────────────────
+# ── Match / gap models (Tranche 3) ──────────────────────────────────────────────────────
 
 
 class RequirementCoverage(BaseModel):
@@ -175,7 +175,7 @@ class KeywordGap(BaseModel):
     evidence: str | None = None
 
 
-# ── Rewrite scaffolding models (Tranche 4) ───────────────────────────────────────────────────────────────────
+# ── Rewrite scaffolding models (Tranche 4) ──────────────────────────────────────────────
 
 
 class XyzScaffold(BaseModel):
@@ -203,7 +203,7 @@ class Claim(BaseModel):
     location: str  # JSON-path-style location, e.g. "work[0].highlights[2]"
 
 
-# ── Render models (Tranche 5) ──────────────────────────────────────────────────────────────────────
+# ── Render models (Tranche 5) ────────────────────────────────────────────────────────
 
 
 class RenderFile(BaseModel):
@@ -222,7 +222,7 @@ class Render(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-# ── Source / job-board models (Phase 2) ─────────────────────────────────────────────────────────────
+# ── Source / job-board models (Phase 2) ───────────────────────────────────────────────
 
 
 class JobPosting(BaseModel):
@@ -253,7 +253,7 @@ class SourceResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-# ── Phase 2b models ─────────────────────────────────────────────────────────────────────────────
+# ── Phase 2b models ────────────────────────────────────────────────────────────────────────────
 
 
 class SuccessProbability(BaseModel):
@@ -287,7 +287,7 @@ class MonitorDiff(BaseModel):
     total_count: int
 
 
-# ── Phase 3 models — recruiter intelligence + network/referral ────────────────────
+# ── Phase 3 models — recruiter intelligence + network/referral ────────────────────────
 
 
 class Recruiter(BaseModel):
@@ -338,7 +338,7 @@ class IntroRequest(BaseModel):
     lang: str = "fr"
 
 
-# ── Phase 4 models — application CRM + apply orchestration ───────────────────────
+# ── Phase 4 models — application CRM + apply orchestration ─────────────────────────
 
 
 class Application(BaseModel):
@@ -398,7 +398,7 @@ class FunnelStats(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
-# ── Phase 4b models — browser automation (gated, safety-critical) ─────────────────
+# ── Phase 4b models — browser automation (gated, safety-critical) ────────────────────
 
 
 class ActPreview(BaseModel):
@@ -432,7 +432,7 @@ class SendResult(BaseModel):
     dry_run: bool = True
 
 
-# ── Phase 5 models — interview prep ──────────────────────────────────────────────────────────────
+# ── Phase 5 models — interview prep ────────────────────────────────────────────────────
 
 
 class CompanyBrief(BaseModel):
@@ -485,7 +485,7 @@ class MockEval(BaseModel):
     feedback: list[str] = Field(default_factory=list)
 
 
-# ── Phase 5 models — salary negotiation ───────────────────────────────────────────────────────
+# ── Phase 5 models — salary negotiation ────────────────────────────────────────────────
 
 
 class SalaryRange(BaseModel):
@@ -523,3 +523,48 @@ class CounterOffer(BaseModel):
     lang: str = "fr"
     target: float  # the target base salary used as anchor
     rationale: str = ""  # data-backed rationale summary
+
+
+# ── Apply-breadth models (APPLY BREADTH phase) ────────────────────────────────────────────
+
+
+class CoverLetter(BaseModel):
+    """Honest scaffold for a cover letter.
+
+    The host LLM personalises prose by filling the [à compléter: …] placeholders.
+    ``why_me`` bullets are pulled ONLY from real CV evidence — nothing is invented.
+    ``why_them`` is a placeholder slot the host fills from company research.
+    ``full_scaffold`` assembles all sections with placeholders clearly marked.
+    ``evidence_used`` lists the CV locations used for why_me bullets.
+    ``notes`` remind the user/host what must be personalised and what to never invent.
+    """
+
+    role_title: str
+    company: str | None = None
+    lang: str = "fr"
+    hook: str
+    why_them: str
+    why_me: list[str] = Field(default_factory=list)
+    close: str
+    full_scaffold: str
+    evidence_used: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class ScreeningAnswer(BaseModel):
+    """Deterministic answer to a screening question.
+
+    ``source`` is one of:
+      - "derived_from_cv"  — factually derived from the resume.
+      - "needs_human"      — cannot be answered without human input (never fabricated).
+      - "benchmark"        — reserved for future salary/market data integration.
+
+    When ``needs_human=True``, ``suggested_answer`` is always ``None``.
+    Eligibility, authorization, availability, and salary are ALWAYS needs_human.
+    """
+
+    question: str
+    suggested_answer: str | None = None
+    source: str  # "derived_from_cv" | "needs_human" | "benchmark"
+    confidence: str  # "high" | "medium" | "low" | "none"
+    needs_human: bool
