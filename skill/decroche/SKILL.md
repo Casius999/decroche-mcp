@@ -7,7 +7,12 @@ description: >-
   "unrejectable" CV, or asks "pourquoi mon CV est rejeté / recalé", "optimiser mon CV pour les ATS",
   "adapter mon CV à cette offre", "CV qui passe les robots", "make my CV ATS-proof", "why does my resume
   get rejected", "tailor my résumé to this job". Drives the decroche-mcp tools (cv_*, ats_*, match_*,
-  market_*) through a 4-phase honest-optimization workflow. Triggers in FR and EN.
+  market_*) through an honest-optimization workflow. ALSO drives the full 360° job-landing pipeline:
+  find/search job offers (source_*, search_market), score & prioritize (match_*), tailor per offer, apply at
+  the employer ATS (gated, apply_*), track applications (analytics_*), recruiter/network (recruiter_*/network_*),
+  interview prep (interview_*), salary negotiation (negotiate_*). Triggers also on "trouve/cherche des offres",
+  "postule", "recherche d'emploi", "find/apply to jobs", "prépare mon entretien", "négocier mon salaire".
+  Triggers in FR and EN.
 ---
 
 # decroche — CV impossible à écarter (honnête)
@@ -30,6 +35,7 @@ Serveur MCP `decroche-mcp` connecté. Outils disponibles (noms montés) :
 `cv_parse`, `cv_xyz_scaffold`, `cv_verify_claims`, `cv_render` ·
 `ats_parse_sim`, `ats_redflag_scan`, `ats_screener_brief`, `ats_score_report` ·
 `match_score`, `match_keyword_gap` · `market_get`, `market_set`, `market_available`.
+**Pipeline 360° (P2-P5)** : `source_search_market` + `source_*` (france_travail/adzuna/jsearch/labonneboite/careerjet/greenhouse/lever/ashby/recruitee…), `match_dedupe`/`match_success_probability`/`match_company_intel`, `monitor_*` · `recruiter_*`/`network_*` · `apply_*` (resolve_source/prefill/cover_letter/answer_screening/queue_*/send_approved/followup) · `analytics_*` (track/update_stage/funnel/channel_roi) · `interview_*` · `negotiate_*`. Voir `references/pipeline.md`.
 Inspecte le schéma live de chaque outil pour les paramètres exacts ; ci-dessous = l'ordre + l'intention.
 
 ---
@@ -69,8 +75,10 @@ Lance en parallèle mental, puis synthétise :
 
 **Livrable final** : 2 fichiers (ATS-safe + humain), le rapport avant/après, et la liste des preuves à fournir.
 
-### Phase 4 — Extension (hors P1, à venir)
-Pipeline complet `decroche` 360° : sourcing multi-plateforme + intel recruteur + candidature *apply-at-source* (gated) + entretien + négociation + analytics. Modules P2-P5 — annonce-les comme prochaines étapes si l'utilisateur veut aller au-delà du CV.
+### Phase 4 — Pipeline 360° : rechercher & postuler au maximum (P2-P5)
+Quand l'utilisateur veut aller au-delà du CV — **trouver des offres, postuler, suivre, préparer l'entretien, négocier** — bascule sur le playbook complet : **`references/pipeline.md`**.
+Boucle « max offres » : `source_search_market(query, region)` → dédup → pour chaque offre `match_score`+`match_success_probability`, si fit ≥ seuil : tailor CV (cœur P1) + `apply_prefill`+`apply_cover_letter`+`apply_answer_screening` → `apply_queue_add` → **`apply_queue_review` (humain) → `apply_queue_approve` (lot) → `apply_send_approved(confirm_send=True)`** (apply-at-source, garde-fous durs) → `analytics_track`. Puis entretien (`interview_*`) + négo (`negotiate_*`).
+Breadth max = clés env (JSEARCH_RAPIDAPI_KEY, FRANCE_TRAVAIL_ID/SECRET, ADZUNA_*) + `uv sync --extra browser` + `playwright install chromium` pour la candidature navigateur. Mêmes bornes d'intégrité (zéro invention, zéro scraping, RGPD).
 
 ---
 
@@ -82,6 +90,7 @@ Pipeline complet `decroche` 360° : sourcing multi-plateforme + intel recruteur 
 - Adapte au **marché** (`market_get`) : photo/âge/longueur/orthographe/dates diffèrent FR vs US/UK/CA.
 
 ## Références
+- `references/pipeline.md` — **playbook 360° P2-P5** : rechercher (source_*) → scorer → tailorer → postuler (apply_*, gated) → suivre (analytics_*) → entretien/négo.
 - `references/screener-simulation.md` — comment jouer fidèlement le screener LLM 2026 sur le kit.
 - `references/honesty-guardrails.md` — la frontière honnête/triche, en détail.
 - `templates/metrics-interview.md` — questions pour extraire les vrais chiffres (remplir Y honnêtement).

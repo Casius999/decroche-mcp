@@ -1,3 +1,4 @@
+<!-- voir aussi references/pipeline.md pour le workflow rechercher→postuler (P2-P5) -->
 # Simuler le screener LLM 2026 (fidèlement)
 
 `ats_screener_brief` te donne un **kit** : `machine_view_text` (le CV tel que la machine le lit APRÈS

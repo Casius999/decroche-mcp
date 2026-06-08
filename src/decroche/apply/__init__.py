@@ -27,19 +27,24 @@ from fastmcp import FastMCP
 
 from decroche.apply.browser import act as _act
 from decroche.apply.browser import send_approved as _send_approved
+from decroche.apply.cover_letter import cover_letter as _cover_letter
 from decroche.apply.followup import draft_followup as _draft_followup
 from decroche.apply.prefill import prefill as _prefill
 from decroche.apply.queue import queue_add as _queue_add
 from decroche.apply.queue import queue_approve as _queue_approve
 from decroche.apply.queue import queue_review as _queue_review
 from decroche.apply.resolve import resolve_source as _resolve_source
+from decroche.apply.screening import answer_screening as _answer_screening
+from decroche.cv.parse import parse_cv
 from decroche.models import (
     ActPreview,
     Application,
+    CoverLetter,
     JobPosting,
     JSONResume,
     PrefillPlan,
     QueueItem,
+    ScreeningAnswer,
     SendResult,
 )
 
@@ -175,6 +180,67 @@ async def act(
         ActPreview — blocked=True if refused, requires_confirm=True if preview.
     """
     return await _act(intent, params, confirm=confirm)
+
+
+# ── Apply-breadth tools — cover letter + screening answers ───────────────────
+
+
+@apply_server.tool
+def cover_letter(
+    cv_path: str,
+    job_json: dict,
+    lang: str = "fr",
+) -> CoverLetter:
+    """Build an honest cover-letter scaffold from a CV file and a job posting.
+
+    HONESTY: ``why_me`` bullets come ONLY from the candidate's real CV.
+    ``why_them`` is a clearly-marked [à compléter: …] placeholder — the host
+    LLM fills it using actual company research.  Nothing is invented.
+
+    No network calls.  Deterministic.
+
+    Args:
+        cv_path:  Absolute path to a CV file (.txt, .md, .docx, .pdf).
+        job_json: Job posting as a dict (must include at minimum: source,
+                  source_id, title, url, description).
+        lang:     ``"fr"`` (default) or ``"en"``.
+
+    Returns:
+        CoverLetter with hook, why_them placeholder, why_me real bullets,
+        close, full_scaffold, evidence_used, and notes.
+    """
+    cv_parse = parse_cv(cv_path)
+    job = JobPosting(**job_json)
+    return _cover_letter(job, cv_parse.json_resume, lang=lang)
+
+
+@apply_server.tool
+def answer_screening(
+    question: str,
+    cv_path: str,
+) -> ScreeningAnswer:
+    """Answer a screening question factually from the CV, or flag needs_human.
+
+    HONESTY rules (non-negotiable):
+    - Work authorization / visa / sponsorship → needs_human=True, answer=None.
+    - Salary expectations → needs_human=True, answer=None.
+    - Relocation / notice / availability / start date → needs_human=True.
+    - "Why this company/role" → needs_human=True.
+    - Unknown questions → needs_human=True.
+    Only factual, derivable answers are returned with source="derived_from_cv".
+
+    No network calls.  Deterministic.
+
+    Args:
+        question: The screening question text (EN or FR).
+        cv_path:  Absolute path to a CV file (.txt, .md, .docx, .pdf).
+
+    Returns:
+        ScreeningAnswer with suggested_answer (or None), source, confidence,
+        and needs_human flag.
+    """
+    cv_parse = parse_cv(cv_path)
+    return _answer_screening(question, cv_parse.json_resume)
 
 
 @apply_server.tool
